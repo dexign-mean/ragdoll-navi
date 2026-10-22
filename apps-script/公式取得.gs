@@ -38,7 +38,8 @@ function fetchOfficial() {
   var last = sh.getLastRow(), existing = {};
   if (last > 1) sh.getRange(2, 1, last - 1, 17).getDisplayValues().forEach(function (r, i) { if (r[11]) existing[r[11]] = { row: i + 2, detected: r[12], state: r[1], type: r[2], start: r[4], done: r[16] }; });
 
-  var now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), add = [], changed = 0, skipped = 0, done = 0;
+  var now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), add = [], changed = 0, skipped = 0, done = 0, autoN = 0;
+  var autoOn = String(readSettingsFresh()['自動承認'] || 'ON').toUpperCase() !== 'OFF';
   items.forEach(function (it) {
     var c = classify(it);
     if (!c) { skipped++; return; }
@@ -57,16 +58,26 @@ function fetchOfficial() {
       }
       return;
     }
-    add.push([false, c.state, c.type, c.name, c.start, c.end, c.startTime, c.endTime, officialUrl(c, boards),
+    var auto = !!(autoOn && c.state === '新規' && (c.type === 'アップデート' || (c.type === 'メンテナンス' && c.startTime) || (c.type === 'イベント' && c.start && c.end)));
+    if (auto) autoN++;
+    add.push([auto, c.state, c.type, c.name, c.start, c.end, c.startTime, c.endTime, officialUrl(c, boards),
       c.posted, 'Steam', c.id, c.detected, c.note, now, c.steamUrl, c.type === 'メンテナンス' ? doneTime(c.start, boards) : '']);
   });
   if (sh.getRange(1, 17).getValue() !== '完了時刻') sh.getRange(1, 17).setValue('完了時刻').setBackground('#1F3863').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 17).setValues(add);
+  if (autoN || done) { CacheService.getScriptCache().removeAll(['data']); PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now())); }
 
   ui.alert('公式情報を取得しました',
-    '新しい候補：' + add.length + '件\n内容が変わった候補：' + changed + '件\n完了時刻を反映：' + done + '件\n対象外（英語・期間なしなど）：' + skipped + '件\n\n' +
-    '「公式候補」タブで内容を確認し、表示するものの「承認」にチェックしてください。' +
+    '新しい候補：' + add.length + '件（うち自動承認 ' + autoN + '件）\n内容が変わった候補：' + changed + '件\n完了時刻を反映：' + done + '件\n対象外（英語・期間なしなど）：' + skipped + '件\n\n' +
+    (autoOn ? '黄色の行（要確認・期間変更あり）だけ確認してください。自動承認はシート「設定」の「自動承認」をOFFにすると止められます。' : '「公式候補」タブで内容を確認し、表示するものの「承認」にチェックしてください。') +
     (boards.ok ? '' : '\n\n※ 公式掲示板を読めなかったため、リンクは公式の一覧ページにしています。'), ui.ButtonSet.OK);
+}
+
+/* 設定はキャッシュを使わずに直接読む（メニュー実行時の最新値） */
+function readSettingsFresh() {
+  var o = {};
+  rows(SH.settings, 2).forEach(function (r) { if (r[0]) o[r[0].trim()] = r[1].trim(); });
+  return o;
 }
 
 /* ========== Steam RSS ========== */
