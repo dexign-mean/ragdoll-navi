@@ -287,26 +287,43 @@ function readSchedule() {
   return rows(SH.schedule, 6).filter(function (r) { return r[0] && r[2] && on(r[5]); }).map(function (r, i) {
     var o = { id: 's' + (i + 1), start: ymd(r[0]), end: ymd(r[1] || r[0]), name: r[2], type: T[r[3]] || 'event' };
     if (r[4]) o.memo = r[4];
-    o.endAt = endAtOf(o.end, '');
+    if (o.type === 'update' || o.type === 'maint') o.keep = true; else o.endAt = endAtOf(o.end, '');
     return o;
   }).concat(readOfficial());
 }
 
-// 公式候補（承認済みのみ）: 承認 / 状態 / 種別 / 名称 / 開始日 / 終了日 / 開始時刻 / 終了時刻 / 公式URL / …
+// 公式候補（承認済みのみ）: 承認 / 状態 / 種別 / 名称 / 開始日 / 終了日 / 開始時刻 / 終了時刻 / 公式URL / 掲載日時 / … / 完了時刻(Q)
+// アップデート・メンテナンスは同じ日に複数あれば掲載日時が新しいものだけを使う（keep: 期限で消さない）
 function readOfficial() {
   var T = { 'イベント': 'event', 'アップデート': 'update', 'メンテナンス': 'maint' };
-  var list = rows(SH.official, 12).filter(function (r) { return on(r[0]) && r[1] !== '除外' && T[r[2]] && r[3] && r[4]; });
-  var maintStart = {};
-  list.forEach(function (r) { if (r[2] === 'メンテナンス' && /^\d{1,2}:\d{2}$/.test(r[6])) maintStart[ymd(r[4])] = r[6]; });
-  return list.map(function (r) {
-    var o = { id: 'o' + (r[11] || r[3]), start: ymd(r[4]), end: ymd(r[5] || r[4]), name: r[3], type: T[r[2]] };
-    if (r[8]) o.url = r[8];
-    if (o.type === 'maint' && r[6]) o.time = r[6] + (r[7] ? '〜' + r[7] : '');
-    var et = r[7];
-    if (et === 'メンテ前') et = maintStart[o.end] || '';
-    o.endAt = endAtOf(o.end, et);
-    return o;
+  var list = rows(SH.official, 17).filter(function (r) { return on(r[0]) && r[1] !== '除外' && T[r[2]] && r[3] && r[4]; });
+  var latest = {};
+  list.forEach(function (r) {
+    if (r[2] === 'イベント') return;
+    var k = r[2] + '|' + ymd(r[4]);
+    if (!latest[k] || String(r[9]) > String(latest[k][9])) latest[k] = r;
   });
+  var maint = {};
+  Object.keys(latest).forEach(function (k) { var r = latest[k]; if (r[2] === 'メンテナンス') maint[ymd(r[4])] = { start: r[6], end: r[16] || r[7] }; });
+  var out = [];
+  Object.keys(latest).forEach(function (k) {
+    var r = latest[k], o = { id: 'o' + (r[11] || r[3]), start: ymd(r[4]), end: ymd(r[5] || r[4]), name: r[3], type: T[r[2]], keep: true };
+    if (r[8]) o.url = r[8];
+    if (r[9]) o.posted = r[9];
+    if (o.type === 'maint') { if (r[6]) o.time = r[6] + (r[7] ? '〜' + r[7] : ''); if (r[16]) o.done = r[16]; }
+    out.push(o);
+  });
+  list.forEach(function (r) {
+    if (r[2] !== 'イベント') return;
+    var o = { id: 'o' + (r[11] || r[3]), start: ymd(r[4]), end: ymd(r[5] || r[4]), name: r[3], type: 'event' };
+    if (r[8]) o.url = r[8];
+    var m1 = maint[o.start] || {}, m2 = maint[o.end] || {};
+    var st = r[6] === 'メンテ後' ? (m1.end || '') : r[6], et = r[7] === 'メンテ前' ? (m2.start || '') : r[7];
+    if (/^\d{1,2}:\d{2}$/.test(st || '')) o.startAt = new Date(o.start + 'T' + ('0' + st).slice(-5) + ':00+09:00').getTime();
+    o.endAt = endAtOf(o.end, et);
+    out.push(o);
+  });
+  return out;
 }
 
 /* 終了時刻（ミリ秒）：時刻があればその時刻、なければ終了日の翌日0:00（日本時間） */

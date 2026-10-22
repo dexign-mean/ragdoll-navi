@@ -242,7 +242,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .day .more{font-size:9.5px;color:var(--muted)}
 .dots{display:flex;gap:2px;flex-wrap:wrap}
 .dot{width:5px;height:5px;border-radius:50%;display:inline-block}
-.t-reset{background:var(--muted)}.t-season{background:var(--navy)}.t-legion{background:var(--warn)}.t-memo{background:var(--ok)}
+.t-reset{background:var(--muted)}.t-update{background:var(--accent)}.t-season{background:var(--navy)}.t-legion{background:var(--warn)}.t-memo{background:var(--ok)}
 .bar{pointer-events:none;z-index:1;margin:1px 2px;border-radius:3px;transition:opacity .15s}
 .bar.cont-l{border-top-left-radius:0;border-bottom-left-radius:0;margin-left:-2px}
 .bar.cont-r{border-top-right-radius:0;border-bottom-right-radius:0;margin-right:-2px}
@@ -347,7 +347,8 @@ details[open]>summary::after{transform:rotate(180deg)}
         <div class="calhead" id="calHead"></div>
         <div class="cal" id="cal"></div>
         <div class="legend">
-          <span><i class="dot t-reset"></i>定期メンテ</span>
+          <span><i class="dot t-reset"></i>メンテナンス</span>
+          <span><i class="dot t-update"></i>アップデート</span>
           <span><i class="dot t-season"></i>シーズン</span>
           <span><i class="dot t-legion"></i>レギオン</span>
           <span><i class="dot t-memo"></i>メモ</span>
@@ -703,7 +704,7 @@ document.addEventListener("change",function(e){
 
 /* ===== カレンダー ===== */
 var calMonth=0,selDay=null,hlEv=null;
-var BAR_TYPES={event:1,update:1,maint:1};
+var BAR_TYPES={event:1};
 var TAG={season:"シーズン",event:"イベント",update:"アップデート",maint:"メンテナンス"};
 function keyOf(d){return d.getUTCFullYear()+"-"+pad(d.getUTCMonth()+1)+"-"+pad(d.getUTCDate())}
 function md(k){var p=k.split("-");return(+p[1])+"/"+(+p[2])}
@@ -740,7 +741,10 @@ function renderCal(){
 }
 function eventsOn(key,dow){
   var out=[];
-  if(dow===WEEK_DOW)out.push({type:"reset",label:"定期メンテナンス・週次リセット",tag:"毎週"});
+  var mt=maintOn(key);
+  if(mt)out.push({type:"reset",label:dispName(mt)+(mt.done?"（"+mt.done+" 完了）":""),tag:"メンテナンス",url:mt.url});
+  if(dow===WEEK_DOW)out.push({type:"reset",label:mt?"週次リセット":"定期メンテナンス・週次リセット",tag:"毎週"});
+  DATA.schedule.forEach(function(s){if(s.type==="update"&&s.start===key)out.push({type:"update",label:dispName(s),tag:"アップデート",url:s.url})});
   DATA.schedule.forEach(function(s){if(s.type!=="season")return;
     if(key===s.end)out.push({type:"season",label:s.name+" 終了",tag:"シーズン"});else if(key===s.start)out.push({type:"season",label:s.name+" 開始",tag:"シーズン"})});
   DATA.legion.forEach(function(l){if(l.date===key)out.push({type:"legion",label:(l.time?l.time+" ":"")+l.name,tag:"レギオン"})});
@@ -751,12 +755,13 @@ function evRow(s,sub){var c=colorOf[s.id];
   return'<li class="evi'+(c?" c"+c:" plain")+(hlEv&&hlEv===s.id?" hl":"")+'"'+(c?' data-ev="'+s.id+'"':'')+'>'+(c?'<i class="sw2" aria-hidden="true"></i>':'<i class="sw2 n" aria-hidden="true"></i>')+'<span class="en">'+(s.url?'<a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(dispName(s))+' ↗</a>':esc(dispName(s)))+'</span><span class="ed num">'+sub+'</span><span class="tag">'+(TAG[s.type]||s.tag||"")+'</span></li>'}
 function renderLists(){
   var today=ymd(nowMs()),until=addDays(today,21),html="";
-  var ongoing=DATA.schedule.filter(function(s){return s.start<=today&&s.end>=today&&s.type!=="season"}).sort(byStart);
+  var ongoing=DATA.schedule.filter(function(s){return isEvOn(s,today)}).sort(byStart);
   var season=DATA.schedule.filter(function(s){return s.type==="season"&&s.start<=today&&s.end>=today})[0];
   html+='<h3 class="lh">開催中</h3><ul class="evl">'+(ongoing.length?ongoing.map(function(s){return evRow(s,s.start===s.end?md(s.start):"〜"+md(s.end))}).join(""):'<li class="none">開催中のイベントはありません</li>')+'</ul>';
   if(season)html+='<p class="note">'+esc(season.name)+'（〜'+md(season.end)+'）</p>';
   var up=[];
-  DATA.schedule.forEach(function(s){if(s.start>today&&s.start<=until&&s.type!=="season")up.push({k:s.start,row:evRow(s,md(s.start)+"（"+DOW[dowOf(s.start)]+"）"+(s.end!==s.start?"〜"+md(s.end):""))})});
+  DATA.schedule.forEach(function(s){var soon=s.start>today||(s.type==="event"&&s.start===today&&!started(s));
+    if(soon&&s.start<=until&&s.type!=="season")up.push({k:s.start,row:evRow(s,md(s.start)+"（"+DOW[dowOf(s.start)]+"）"+(s.end!==s.start?"〜"+md(s.end):""))})});
   for(var i=1;i<=21;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW&&!hasMaint(k))up.push({k:k,row:evRow({id:null,name:"定期メンテナンス（時間未定）",type:"maint"},md(k)+"（水）")})}
   DATA.legion.forEach(function(l){if(l.date>=today&&l.date<=until)up.push({k:l.date,row:evRow({id:null,name:l.name,tag:"レギオン"},md(l.date)+"（"+DOW[dowOf(l.date)]+"）"+(l.time?" "+l.time:""))})});
   up.sort(function(a,b){return a.k<b.k?-1:a.k>b.k?1:0});
@@ -771,9 +776,9 @@ function setHl(id){hlEv=id;document.querySelectorAll("#view-cal [data-ev]").forE
 function renderDay(){
   var box=document.getElementById("dayDetail"),key=selDay||ymd(nowMs()),dow=dowOf(key);
   var ev=eventsOn(key,dow).filter(function(x){return x.type!=="memo"});
-  var running=DATA.schedule.filter(function(s){return key>=s.start&&key<=s.end&&s.type!=="season"}).sort(byStart);
+  var running=DATA.schedule.filter(function(s){return key>=s.start&&key<=s.end&&s.type==="event"}).sort(byStart);
   box.innerHTML='<h3 class="lh num">'+md(key)+'（'+DOW[dow]+'）</h3>'+
-    (ev.length||running.length?'<ul class="evl">'+running.map(function(s){return evRow(s,s.start===s.end?"":"〜"+md(s.end))}).join("")+ev.map(function(x){return'<li class="evi plain"><i class="sw2 n t-'+x.type+'" aria-hidden="true"></i><span class="en">'+esc(x.label)+'</span><span class="ed"></span><span class="tag">'+x.tag+'</span></li>'}).join("")+'</ul>':'<p class="note">この日の予定はありません</p>')+
+    (ev.length||running.length?'<ul class="evl">'+running.map(function(s){return evRow(s,s.start===s.end?"":"〜"+md(s.end))}).join("")+ev.map(function(x){return'<li class="evi plain"><i class="sw2 n t-'+x.type+'" aria-hidden="true"></i><span class="en">'+(x.url?'<a href="'+esc(x.url)+'" target="_blank" rel="noopener">'+esc(x.label)+' ↗</a>':esc(x.label))+'</span><span class="ed"></span><span class="tag">'+x.tag+'</span></li>'}).join("")+'</ul>':'<p class="note">この日の予定はありません</p>')+
     '<label class="note" for="memo">自分のメモ（このブラウザに保存）</label><textarea id="memo" placeholder="21時 レギオン遠征">'+esc(S.memos[key]||"")+'</textarea>';
   document.getElementById("memo").addEventListener("input",function(){var v=this.value.trim();if(v)S.memos[key]=v;else delete S.memos[key];save();clearTimeout(memoT);memoT=setTimeout(renderCal,600)});
   box.querySelectorAll(".evi[data-ev]").forEach(function(li){li.addEventListener("mouseenter",function(){setHl(li.dataset.ev)});li.addEventListener("mouseleave",function(){setHl(null)})});
@@ -786,14 +791,11 @@ var tkItems=[],tkIdx=0,tkTimer=null,tkHold=false,reduceMotion=window.matchMedia&
 function buildTicker(){
   var today=ymd(nowMs()),soon=addDays(today,7),out=[];
   var nt=(DATA.settings||{})["お知らせ"];if(nt)out.push({tag:"お知らせ",text:nt,warn:true});
-  function tkText(s){var day=md(s.start)+"（"+DOW[dowOf(s.start)]+"） ";
-    if(s.type==="event")return s.name+"　"+(s.start===s.end?md(s.start):md(s.start)+"〜"+md(s.end));
-    return(s.start===today?"本日 ":day)+dispName(s)}
-  DATA.schedule.filter(function(s){return s.type!=="season"&&s.start<=today&&s.end>=today}).sort(byStart).forEach(function(s){
-    out.push({tag:TAG[s.type],text:tkText(s),ev:s.id,url:s.url})});
-  DATA.schedule.filter(function(s){return s.type!=="season"&&s.start>today&&s.start<=soon}).sort(byStart).forEach(function(s){
-    out.push({tag:TAG[s.type],text:tkText(s),ev:s.id,url:s.url})});
-  for(var i=0;i<=7;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW){if(!hasMaint(k))out.push({tag:TAG.maint,text:(i===0?"本日":md(k)+"（水）")+" 定期メンテナンス（時間未定）"});break}}
+  function dd(k){return md(k)+"（"+DOW[dowOf(k)]+"） "}
+  var mt=latestOf("maint");if(mt)out.push({tag:TAG.maint,text:dd(mt.start)+mt.name+(mt.done?" "+mt.done+" 完了":(mt.time?" "+mt.time:"")),ev:mt.id,url:mt.url});
+  var ud=latestOf("update");if(ud)out.push({tag:TAG.update,text:dd(ud.start)+ud.name,ev:ud.id,url:ud.url});
+  DATA.schedule.filter(function(s){return isEvOn(s,today)}).sort(function(a,b){return a.end<b.end?-1:a.end>b.end?1:0}).forEach(function(s){
+    out.push({tag:TAG.event,text:s.name+"　"+(s.start===s.end?md(s.start):md(s.start)+"〜"+md(s.end)),ev:s.id,url:s.url})});
   if(!out.length)out.push({tag:"",text:"-"});
   tkItems=out;if(tkIdx>=out.length)tkIdx=0;
 }
@@ -848,11 +850,17 @@ function getAuth(){var r=ls(AKEY)||ss(AKEY);try{return r?JSON.parse(r):null}catc
 function setAuth(a,auto){ls(AKEY,null);ss(AKEY,null);if(a)(auto?ls:ss)(AKEY,JSON.stringify(a))}
 function api(body){return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body),redirect:"follow"}).then(function(r){return r.json()})}
 /* 終了時刻を過ぎた予定は隠す（endAt がない古いデータは終了日の翌日まで表示） */
-function isAlive(s,t){if(s.endAt)return t<s.endAt;return s.end>=ymd(t)}
+function isAlive(s,t){if(s.keep)return true;if(s.endAt)return t<s.endAt;return s.end>=ymd(t)}
+function started(s,t){return!s.startAt||(t||nowMs())>=s.startAt}
+function latestOf(type){return DATA.schedule.filter(function(s){return s.type===type}).sort(function(a,b){var x=(a.posted||a.start),y=(b.posted||b.start);return x<y?1:x>y?-1:0})[0]}
+function isEvOn(s,today){return s.type==="event"&&s.start<=today&&s.end>=today&&started(s)}
 function aliveSched(){var t=nowMs();return(DATA.schedRaw||[]).filter(function(s){return isAlive(s,t)})}
 function hasMaint(k){return DATA.schedule.some(function(s){return s.type==="maint"&&s.start===k})}
+function maintOn(k){return DATA.schedule.filter(function(s){return s.type==="maint"&&s.start===k})[0]}
 function dispName(s){return s.name+(s.time?" "+s.time:"")}
-setInterval(function(){var a=aliveSched();if(a.length!==DATA.schedule.length){DATA.schedule=a;assignColors();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay()}},60e3);
+var schedSig="";
+function sigOf(a){var t=nowMs();return a.map(function(s){return s.id+(started(s,t)?"+":"-")}).join(",")}
+setInterval(function(){var a=aliveSched(),g=sigOf(a);if(g!==schedSig){schedSig=g;DATA.schedule=a;assignColors();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay()}},60e3);
 function applyData(d){if(!d)return;DATA.items=d.items||[];DATA.timers=d.timers||[];DATA.schedRaw=d.schedule||[];DATA.schedule=aliveSched();DATA.legion=d.legion||[];DATA.settings=d.settings||{};
   assignColors();document.getElementById("timers").innerHTML="";applyResets();renderChars();renderChecks();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay();renderPrio();renderTimers()}
 function showGate(mode,msg){document.getElementById("gate").hidden=false;document.getElementById("wrapMain").hidden=true;
