@@ -314,7 +314,7 @@ details[open]>summary::after{transform:rotate(180deg)}
   <div class="ticker" id="ticker" aria-roledescription="お知らせ" aria-live="off">
     <svg class="mega" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M17.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 14l1.5 5h2.5l-1.4-4.4"/></svg>
     <div class="tk-body" id="tkBody"></div>
-    <div class="tk-nav"><button type="button" class="ghost tk-btn" id="tkPrev" aria-label="前のお知らせ">‹</button><span class="tk-dots" id="tkDots"></span><button type="button" class="ghost tk-btn" id="tkNext" aria-label="次のお知らせ">›</button></div>
+    <div class="tk-nav"><button type="button" class="ghost tk-btn" id="tkNext" aria-label="次のお知らせ" title="次のお知らせ">›</button></div>
   </div>
 
 
@@ -804,7 +804,7 @@ function renderTicker(anim){
   var c=it.ev?colorOf[it.ev]:0,inner=(c?'<i class="sw2 c'+c+'" aria-hidden="true"></i>':'')+(it.tag?'<span class="tag">'+esc(it.tag)+'</span>':'')+'<span class="tt">'+esc(it.text)+'</span>';
   body.innerHTML=it.url?'<a class="tk-item'+(anim?" tk-fade":"")+'" href="'+esc(it.url)+'" target="_blank" rel="noopener">'+inner+' ↗</a>':
     '<button type="button" class="tk-item'+(it.warn?" warn":"")+(anim?" tk-fade":"")+'"'+(it.ev?' data-tkev="'+it.ev+'"':'')+'>'+inner+'</button>';
-  document.getElementById("tkDots").innerHTML=tkItems.map(function(_,i){return'<i'+(i===tkIdx?' class="on"':'')+'></i>'}).join("");
+  document.getElementById("tkNext").hidden=tkItems.length<2;
 }
 function tkGo(d){if(!tkItems.length)return;tkIdx=(tkIdx+d+tkItems.length)%tkItems.length;renderTicker(!reduceMotion)}
 function tkStart(){clearInterval(tkTimer);if(tkItems.length<2)return;tkTimer=setInterval(function(){if(!tkHold&&!document.hidden)tkGo(1)},5000)}
@@ -812,7 +812,7 @@ function tkStart(){clearInterval(tkTimer);if(tkItems.length<2)return;tkTimer=set
   tk.addEventListener("mouseenter",function(){tkHold=true});tk.addEventListener("mouseleave",function(){tkHold=false});
   tk.addEventListener("focusin",function(){tkHold=true});tk.addEventListener("focusout",function(){tkHold=false});
   tk.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
-    if(b.id==="tkPrev"){tkGo(-1);tkStart()}else if(b.id==="tkNext"){tkGo(1);tkStart()}
+    if(b.id==="tkNext"){tkGo(1);tkStart()}
     else if(b.dataset.tkev){showTab("cal");setHl(b.dataset.tkev)}})})();
 /* ===== 通知 ===== */
 function askNotify(){
