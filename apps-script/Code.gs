@@ -25,7 +25,8 @@ var SH = {
   timers: '定時イベント',
   schedule: '日程',
   legion: 'レギオン日程',
-  members: 'メンバー認証'
+  members: 'メンバー認証',
+  official: '公式候補'
 };
 
 var MSG = {
@@ -286,8 +287,32 @@ function readSchedule() {
   return rows(SH.schedule, 6).filter(function (r) { return r[0] && r[2] && on(r[5]); }).map(function (r, i) {
     var o = { id: 's' + (i + 1), start: ymd(r[0]), end: ymd(r[1] || r[0]), name: r[2], type: T[r[3]] || 'event' };
     if (r[4]) o.memo = r[4];
+    o.endAt = endAtOf(o.end, '');
+    return o;
+  }).concat(readOfficial());
+}
+
+// 公式候補（承認済みのみ）: 承認 / 状態 / 種別 / 名称 / 開始日 / 終了日 / 開始時刻 / 終了時刻 / 公式URL / …
+function readOfficial() {
+  var T = { 'イベント': 'event', 'アップデート': 'update', 'メンテナンス': 'maint' };
+  var list = rows(SH.official, 12).filter(function (r) { return on(r[0]) && r[1] !== '除外' && T[r[2]] && r[3] && r[4]; });
+  var maintStart = {};
+  list.forEach(function (r) { if (r[2] === 'メンテナンス' && /^\d{1,2}:\d{2}$/.test(r[6])) maintStart[ymd(r[4])] = r[6]; });
+  return list.map(function (r) {
+    var o = { id: 'o' + (r[11] || r[3]), start: ymd(r[4]), end: ymd(r[5] || r[4]), name: r[3], type: T[r[2]] };
+    if (r[8]) o.url = r[8];
+    if (o.type === 'maint' && r[6]) o.time = r[6] + (r[7] ? '〜' + r[7] : '');
+    var et = r[7];
+    if (et === 'メンテ前') et = maintStart[o.end] || '';
+    o.endAt = endAtOf(o.end, et);
     return o;
   });
+}
+
+/* 終了時刻（ミリ秒）：時刻があればその時刻、なければ終了日の翌日0:00（日本時間） */
+function endAtOf(end, time) {
+  if (/^\d{1,2}:\d{2}$/.test(time || '')) return new Date(end + 'T' + ('0' + time).slice(-5) + ':00+09:00').getTime();
+  return new Date(end + 'T00:00:00+09:00').getTime() + 864e5;
 }
 
 // レギオン日程: 日付 / 時刻 / 名称 / メモ / 表示

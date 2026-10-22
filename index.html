@@ -261,6 +261,8 @@ details[open]>summary::after{transform:rotate(180deg)}
 .sw2{width:10px;height:10px;border-radius:3px;background:var(--cc)}
 .sw2.n{background:var(--muted);border-radius:50%}
 .evi .en{font-weight:700;font-size:13px;overflow-wrap:anywhere}
+.evi .en a{color:inherit;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.evi .en a:hover{text-decoration-color:var(--accent)}
 .evi .ed{font-size:12px;color:var(--muted);white-space:nowrap}
 .evi .tag{margin:0}
 .none{color:var(--muted);font-size:12.5px;padding:4px 2px}
@@ -746,7 +748,7 @@ function eventsOn(key,dow){
   return out;
 }
 function evRow(s,sub){var c=colorOf[s.id];
-  return'<li class="evi'+(c?" c"+c:" plain")+(hlEv===s.id?" hl":"")+'"'+(c?' data-ev="'+s.id+'"':'')+'>'+(c?'<i class="sw2" aria-hidden="true"></i>':'<i class="sw2 n" aria-hidden="true"></i>')+'<span class="en">'+esc(s.name)+'</span><span class="ed num">'+sub+'</span><span class="tag">'+(TAG[s.type]||s.tag||"")+'</span></li>'}
+  return'<li class="evi'+(c?" c"+c:" plain")+(hlEv&&hlEv===s.id?" hl":"")+'"'+(c?' data-ev="'+s.id+'"':'')+'>'+(c?'<i class="sw2" aria-hidden="true"></i>':'<i class="sw2 n" aria-hidden="true"></i>')+'<span class="en">'+(s.url?'<a href="'+esc(s.url)+'" target="_blank" rel="noopener">'+esc(dispName(s))+' ↗</a>':esc(dispName(s)))+'</span><span class="ed num">'+sub+'</span><span class="tag">'+(TAG[s.type]||s.tag||"")+'</span></li>'}
 function renderLists(){
   var today=ymd(nowMs()),until=addDays(today,21),html="";
   var ongoing=DATA.schedule.filter(function(s){return s.start<=today&&s.end>=today&&s.type!=="season"}).sort(byStart);
@@ -755,7 +757,7 @@ function renderLists(){
   if(season)html+='<p class="note">'+esc(season.name)+'（〜'+md(season.end)+'）</p>';
   var up=[];
   DATA.schedule.forEach(function(s){if(s.start>today&&s.start<=until&&s.type!=="season")up.push({k:s.start,row:evRow(s,md(s.start)+"（"+DOW[dowOf(s.start)]+"）"+(s.end!==s.start?"〜"+md(s.end):""))})});
-  for(var i=1;i<=21;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW)up.push({k:k,row:evRow({id:null,name:"定期メンテナンス（時間未定）",type:"maint"},md(k)+"（水）")})}
+  for(var i=1;i<=21;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW&&!hasMaint(k))up.push({k:k,row:evRow({id:null,name:"定期メンテナンス（時間未定）",type:"maint"},md(k)+"（水）")})}
   DATA.legion.forEach(function(l){if(l.date>=today&&l.date<=until)up.push({k:l.date,row:evRow({id:null,name:l.name,tag:"レギオン"},md(l.date)+"（"+DOW[dowOf(l.date)]+"）"+(l.time?" "+l.time:""))})});
   up.sort(function(a,b){return a.k<b.k?-1:a.k>b.k?1:0});
   html+='<h3 class="lh">今後の予定 <span class="note">3週間以内</span></h3><ul class="evl">'+(up.length?up.map(function(x){return x.row}).join(""):'<li class="none">予定はありません</li>')+'</ul>';
@@ -784,11 +786,14 @@ var tkItems=[],tkIdx=0,tkTimer=null,tkHold=false,reduceMotion=window.matchMedia&
 function buildTicker(){
   var today=ymd(nowMs()),soon=addDays(today,7),out=[];
   var nt=(DATA.settings||{})["お知らせ"];if(nt)out.push({tag:"お知らせ",text:nt,warn:true});
+  function tkText(s){var day=md(s.start)+"（"+DOW[dowOf(s.start)]+"） ";
+    if(s.type==="event")return s.name+"　"+(s.start===s.end?md(s.start):md(s.start)+"〜"+md(s.end));
+    return(s.start===today?"本日 ":day)+dispName(s)}
   DATA.schedule.filter(function(s){return s.type!=="season"&&s.start<=today&&s.end>=today}).sort(byStart).forEach(function(s){
-    out.push({tag:TAG[s.type],text:s.name+(s.start===s.end?"":"　〜"+md(s.end)),ev:s.id,url:s.url})});
+    out.push({tag:TAG[s.type],text:tkText(s),ev:s.id,url:s.url})});
   DATA.schedule.filter(function(s){return s.type!=="season"&&s.start>today&&s.start<=soon}).sort(byStart).forEach(function(s){
-    out.push({tag:TAG[s.type],text:md(s.start)+"（"+DOW[dowOf(s.start)]+"） "+s.name,ev:s.id,url:s.url})});
-  for(var i=0;i<=7;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW){out.push({tag:TAG.maint,text:(i===0?"本日":md(k)+"（水）")+" 定期メンテナンス（時間未定）"});break}}
+    out.push({tag:TAG[s.type],text:tkText(s),ev:s.id,url:s.url})});
+  for(var i=0;i<=7;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW){if(!hasMaint(k))out.push({tag:TAG.maint,text:(i===0?"本日":md(k)+"（水）")+" 定期メンテナンス（時間未定）"});break}}
   if(!out.length)out.push({tag:"",text:"-"});
   tkItems=out;if(tkIdx>=out.length)tkIdx=0;
 }
@@ -842,7 +847,13 @@ function ss(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===nu
 function getAuth(){var r=ls(AKEY)||ss(AKEY);try{return r?JSON.parse(r):null}catch(e){return null}}
 function setAuth(a,auto){ls(AKEY,null);ss(AKEY,null);if(a)(auto?ls:ss)(AKEY,JSON.stringify(a))}
 function api(body){return fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body),redirect:"follow"}).then(function(r){return r.json()})}
-function applyData(d){if(!d)return;DATA.items=d.items||[];DATA.timers=d.timers||[];DATA.schedule=d.schedule||[];DATA.legion=d.legion||[];DATA.settings=d.settings||{};
+/* 終了時刻を過ぎた予定は隠す（endAt がない古いデータは終了日の翌日まで表示） */
+function isAlive(s,t){if(s.endAt)return t<s.endAt;return s.end>=ymd(t)}
+function aliveSched(){var t=nowMs();return(DATA.schedRaw||[]).filter(function(s){return isAlive(s,t)})}
+function hasMaint(k){return DATA.schedule.some(function(s){return s.type==="maint"&&s.start===k})}
+function dispName(s){return s.name+(s.time?" "+s.time:"")}
+setInterval(function(){var a=aliveSched();if(a.length!==DATA.schedule.length){DATA.schedule=a;assignColors();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay()}},60e3);
+function applyData(d){if(!d)return;DATA.items=d.items||[];DATA.timers=d.timers||[];DATA.schedRaw=d.schedule||[];DATA.schedule=aliveSched();DATA.legion=d.legion||[];DATA.settings=d.settings||{};
   assignColors();document.getElementById("timers").innerHTML="";applyResets();renderChars();renderChecks();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay();renderPrio();renderTimers()}
 function showGate(mode,msg){document.getElementById("gate").hidden=false;document.getElementById("wrapMain").hidden=true;
   var f=document.getElementById("loginForm"),m=document.getElementById("gateMsg");f.hidden=mode!=="login";m.hidden=mode==="login";
