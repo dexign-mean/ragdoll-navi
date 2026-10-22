@@ -36,6 +36,20 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .gerr{color:var(--warn);font-size:12.5px;min-height:1em;margin:0}
 .gmsg{font-size:14px;line-height:1.7;margin:0}
 .acct{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
+.adm{display:grid;gap:12px;border-top:1px dashed var(--line);padding-top:12px}
+.adm h4{margin:6px 0 0;font-size:13px;color:var(--navy)}
+.adm .acard{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px;background:var(--surface)}
+.adm .acard.warn{border-color:#E0B400;background:#FFF9E0}
+.adm .afield{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.adm .afield label{display:grid;gap:2px;font-size:11.5px;color:var(--muted)}
+.adm input[type=text],.adm input[type=date],.adm select,.adm textarea{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:13px}
+.adm table{width:100%;border-collapse:collapse;font-size:12.5px}
+.adm td,.adm th{padding:5px 6px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+.adm th{color:var(--muted);font-weight:600;border-top:none}
+.adm .amsg{font-size:12.5px;white-space:pre-line}
+.adm .danger{border-color:var(--warn);color:var(--warn)}
+.hbtn.badge{position:relative}.hbtn.badge::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .adm .acard.warn{background:#3A3215}}
 .wdbox{display:grid;gap:8px;padding:12px;border:1px solid var(--warn);border-radius:8px}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px}
@@ -412,6 +426,19 @@ details[open]>summary::after{transform:rotate(180deg)}
           <div class="setrow"><button type="button" class="primary" id="wdYes">退会する</button><button type="button" class="ghost" id="wdNo">キャンセル</button></div>
         </div>
       </div>
+      <div class="adm" id="admBox" hidden>
+        <strong class="sh">管理者</strong>
+        <h4>公式情報</h4>
+        <div class="setrow"><button type="button" class="primary" id="admFetch">公式情報を取得</button><button type="button" class="ghost" id="admReload">一覧を読み込み直す</button></div>
+        <p class="amsg note" id="admMsg" aria-live="polite"></p>
+        <div id="admPending"></div>
+        <details><summary>すべての候補</summary><div id="admAll"></div></details>
+        <h4>設定</h4>
+        <div id="admSet"></div>
+        <h4>メンバー</h4>
+        <div class="setrow"><input type="text" id="admNewName" placeholder="本キャラのニックネーム" style="max-width:240px"><button type="button" id="admAdd">追加</button></div>
+        <div id="admMem"></div>
+      </div>
       <div class="backup">
         <strong class="sh">バックアップ</strong>
         <div class="setrow">
@@ -566,7 +593,7 @@ function labelHtml(c){var k=cls(c.cls);return(k?'<span class="cls" aria-hidden="
 var editId=null,delId=null;
 var curTab="home",prevTab="home";
 function isOv(n){return n==="set"||n==="help"}
-function showTab(name){if(isOv(name)&&curTab===name)name=prevTab;if(!isOv(name))prevTab=name;curTab=name;
+function showTab(name){if(isOv(name)&&curTab===name)name=prevTab;if(!isOv(name))prevTab=name;curTab=name;if(name==="set"&&isAdm())admCall({op:"list"});
   ["home","cal","guide","raid","set","help"].forEach(function(n){document.getElementById("view-"+n).hidden=(n!==name)});
   document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===name))});
   document.querySelectorAll('.hbtn[data-tab]').forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.tab===name))});
@@ -868,7 +895,7 @@ function showGate(mode,msg){document.getElementById("gate").hidden=false;documen
   if(mode==="login"){document.getElementById("lgErr").textContent=msg||"";var n=ls(NKEY);if(n&&!document.getElementById("lgName").value)document.getElementById("lgName").value=n;
     document.getElementById("lgSave").checked=ls(NKEY)!==null||ls(NKEY+"-off")===null;setTimeout(function(){(document.getElementById("lgName").value?document.getElementById("lgCode"):document.getElementById("lgName")).focus()},0)}
   else{document.getElementById("gateText").textContent=msg||"";document.getElementById("gateBack").hidden=mode!=="info"}}
-function showApp(){document.getElementById("gate").hidden=true;document.getElementById("wrapMain").hidden=false;var a=getAuth();document.getElementById("acctName").textContent=a?"ログイン中："+a.name:""}
+function showApp(){document.getElementById("gate").hidden=true;document.getElementById("wrapMain").hidden=false;var a=getAuth();document.getElementById("acctName").textContent=a?"ログイン中："+a.name+(a.admin?"（管理者）":""):"";admInit()}
 function clearCache(){ls(CKEY,null);applyData({items:[],timers:[],schedule:[],legion:[],settings:{}})}
 function handleFail(r){var why=r&&r.reason;
   if(why==="expired"){setAuth(null);showGate("login",r.message);return}
@@ -878,7 +905,7 @@ var fetching=false;
 function fetchData(manual){var a=getAuth();if(!a||fetching)return;fetching=true;if(manual)setStatus("更新中…",false,"hdrStatus");
   api({action:"data",token:a.token}).then(function(r){fetching=false;
     if(!r.ok){handleFail(r);return}
-    if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}
+    if(r.token||a.admin!==!!r.admin){if(r.token)a.token=r.token;a.admin=!!r.admin;setAuth(a,!!ls(AKEY));admInit()}
     ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));applyData(r.data);setDot(false);setStatus(manual?"最新バージョン（"+r.data.updated+"）":"",false,"hdrStatus")
   }).catch(function(){fetching=false;setStatus("サーバーに接続できません（前回のデータで表示中）",true,"hdrStatus")})}
 document.getElementById("lgEye").innerHTML=svg("eye",true);
@@ -891,7 +918,7 @@ document.getElementById("loginForm").addEventListener("submit",function(e){e.pre
   b.disabled=true;b.textContent="確認中…";err.textContent="";
   api({action:"login",name:n,code:c}).then(function(r){b.disabled=false;b.textContent="ログイン";
     if(!r.ok){if(r.reason==="closed"||r.reason==="blocked"){showGate("msg",r.message);return}err.textContent=r.message||"ログインできませんでした。";return}
-    var auto=document.getElementById("lgAuto").checked;setAuth({token:r.token,name:r.name},auto);
+    var auto=document.getElementById("lgAuto").checked;setAuth({token:r.token,name:r.name,admin:!!r.admin},auto);
     if(document.getElementById("lgSave").checked){ls(NKEY,n);ls(NKEY+"-off",null)}else{ls(NKEY,null);ls(NKEY+"-off","1")}
     document.getElementById("lgCode").value="";ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));showApp();applyData(r.data)
   }).catch(function(){b.disabled=false;b.textContent="ログイン";err.textContent="サーバーに接続できません。しばらくしてからもう一度お試しください。"})});
@@ -901,6 +928,59 @@ function withdraw(){var a=getAuth();if(!a)return;var wipe=document.getElementByI
     document.getElementById("wdBox").hidden=true;if(wipe){try{localStorage.removeItem(KEY);localStorage.removeItem(UKEY)}catch(e){}S=defState()}
     setAuth(null);clearCache();showGate("info","退会しました。ご利用ありがとうございました。")
   }).catch(function(){b.disabled=false;setStatus("サーバーに接続できません。しばらくしてからもう一度お試しください。",true,"hdrStatus")})}
+/* ===== 管理者 ===== */
+var ADM=null,admConfirm={};
+function isAdm(){var a=getAuth();return!!(a&&a.admin)}
+function admInit(){var on=isAdm();document.getElementById("admBox").hidden=!on;if(!on){document.querySelector('.hbtn[data-tab="set"]').classList.remove("badge");return}if(!ADM)admCall({op:"list"})}
+function admCall(body,btn){var a=getAuth();if(!a)return;body.action="adm";body.token=a.token;if(btn)btn.disabled=true;
+  if(body.op==="fetch")admMsg("取得中…（数秒かかります）");
+  return api(body).then(function(r){if(btn)btn.disabled=false;
+    if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}
+    if(r.reason==="expired"||r.reason==="blocked"||r.reason==="forbidden"){if(r.reason!=="forbidden")handleFail(r);else admMsg(r.message,true);return}
+    if(r.message)admMsg(r.message,!r.ok);else if(body.op!=="list")admMsg("");
+    if(r.cands){ADM=r;admRender()}
+    if(r.ok&&body.op!=="list")fetchData(false)
+  }).catch(function(){if(btn)btn.disabled=false;admMsg("サーバーに接続できません。",true)})}
+function admMsg(t,err){var m=document.getElementById("admMsg");m.textContent=t||"";m.classList.toggle("status",!!t);m.classList.toggle("err",!!err)}
+function admRender(){var d=ADM;document.querySelector('.hbtn[data-tab="set"]').classList.toggle("badge",d.pending>0);
+  var pend=d.cands.filter(function(c){return c.state==="要確認"||c.state==="期間変更あり"});
+  document.getElementById("admPending").innerHTML=pend.length?'<p class="note">確認が必要な候補：'+pend.length+'件</p>'+pend.map(function(c){
+    return'<div class="acard warn" data-row="'+c.row+'" data-key="'+esc(c.id||c.name)+'"><div><strong>'+esc(c.state)+'</strong> · '+esc(c.type)+(c.url?' · <a href="'+esc(c.url)+'" target="_blank" rel="noopener">公式 ↗</a>':'')+'</div>'+
+      (c.note?'<div class="note">'+esc(c.note)+'</div>':'')+(c.detected?'<div class="note">検出：'+esc(c.detected)+'</div>':'')+
+      '<div class="afield"><label>名称<input type="text" data-f="name" value="'+esc(c.name)+'"></label><label>開始日<input type="date" data-f="start" value="'+esc(c.start)+'"></label><label>終了日<input type="date" data-f="end" value="'+esc(c.end)+'"></label>'+
+      '<label>開始時刻<input type="text" data-f="startTime" value="'+esc(c.startTime)+'" placeholder="15:30 / メンテ後"></label><label>終了時刻<input type="text" data-f="endTime" value="'+esc(c.endTime)+'" placeholder="15:30 / メンテ前"></label></div>'+
+      '<div class="setrow"><button type="button" class="primary" data-act="approve">保存して承認</button><button type="button" data-act="save">保存のみ</button><button type="button" class="ghost" data-act="exclude">除外</button></div></div>'}).join(""):'<p class="note">確認が必要な候補はありません。</p>';
+  var all=d.cands.slice().reverse();
+  document.getElementById("admAll").innerHTML=all.length?'<table><thead><tr><th>承認</th><th>種別</th><th>名称</th><th>期間</th><th>状態</th></tr></thead><tbody>'+all.map(function(c){
+    return'<tr data-row="'+c.row+'" data-key="'+esc(c.id||c.name)+'"><td><input type="checkbox" data-act="toggle"'+(c.approve?" checked":"")+' aria-label="承認"></td><td>'+esc(c.type)+'</td><td>'+(c.url?'<a href="'+esc(c.url)+'" target="_blank" rel="noopener">'+esc(c.name)+'</a>':esc(c.name))+'</td><td class="num">'+esc(c.start)+(c.end&&c.end!==c.start?'〜'+esc(c.end):'')+(c.type==="メンテナンス"&&c.startTime?' '+esc(c.startTime)+'〜'+esc(c.endTime):'')+(c.done?'（'+esc(c.done)+' 完了）':'')+'</td><td>'+esc(c.state)+'</td></tr>'}).join("")+'</tbody></table>':'<p class="note">候補はまだありません。「公式情報を取得」を押してください。</p>';
+  var st=d.settings;
+  document.getElementById("admSet").innerHTML='<div class="afield" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">'+
+    '<label>自動承認<select data-set="自動承認"><option'+(st["自動承認"]==="ON"?" selected":"")+'>ON</option><option'+(st["自動承認"]==="OFF"?" selected":"")+'>OFF</option></select></label>'+
+    '<label>公開状態<select data-set="公開状態"><option'+(st["公開状態"]==="公開"?" selected":"")+'>公開</option><option'+(st["公開状態"]==="停止"?" selected":"")+'>停止</option></select></label></div>'+
+    '<label class="note" style="display:grid;gap:4px;margin-top:6px">お知らせ（空欄で非表示・200文字まで）<textarea id="admNotice" rows="2">'+esc(st["お知らせ"]||"")+'</textarea></label>'+
+    '<div class="setrow" style="margin-top:6px"><button type="button" id="admNoticeSave">お知らせを保存</button></div>';
+  document.getElementById("admMem").innerHTML=d.members.length?'<table><thead><tr><th>ニックネーム</th><th>状態</th><th></th></tr></thead><tbody>'+d.members.map(function(m){
+    return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td><select data-mst>'+["有効","停止","退会"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></td><td><button type="button" data-act="mem">変更</button></td></tr>'}).join("")+'</tbody></table>':'<p class="note">メンバーがいません。</p>';
+}
+function admField(card,f){var el=card.querySelector('[data-f="'+f+'"]');return el?el.value.trim():""}
+document.getElementById("admBox").addEventListener("click",function(e){var t=e.target.closest("button,input[type=checkbox]");if(!t)return;
+  if(t.id==="admFetch"){admCall({op:"fetch"},t);return}
+  if(t.id==="admReload"){admCall({op:"list"},t);return}
+  if(t.id==="admNoticeSave"){admCall({op:"setting",key:"お知らせ",value:document.getElementById("admNotice").value},t);return}
+  if(t.id==="admAdd"){var n=document.getElementById("admNewName");admCall({op:"member",sub:"add",name:n.value},t);n.value="";return}
+  var act=t.dataset.act;
+  if(act==="approve"||act==="save"||act==="exclude"){var c=t.closest(".acard"),data={};
+    if(act==="exclude")data={state:"除外",approve:false};
+    else{["name","start","end","startTime","endTime"].forEach(function(f){data[f]=admField(c,f)});data.state="確認済み";if(act==="approve")data.approve=true}
+    admCall({op:"cand",row:+c.dataset.row,key:c.dataset.key,data:data},t);return}
+  if(act==="toggle"){var tr=t.closest("tr");admCall({op:"cand",row:+tr.dataset.row,key:tr.dataset.key,data:{approve:t.checked}});return}
+  if(act==="mem"){var r=t.closest("tr"),st=r.querySelector("[data-mst]").value,k="m"+r.dataset.mrow+st;
+    if((st==="停止"||st==="退会")&&!admConfirm[k]){admConfirm[k]=1;t.textContent="もう一度押して確定";t.classList.add("danger");return}
+    delete admConfirm[k];admCall({op:"member",sub:"status",row:+r.dataset.mrow,name:r.dataset.mname,status:st},t);return}
+});
+document.getElementById("admBox").addEventListener("change",function(e){var s=e.target.closest("[data-set]");if(!s)return;
+  if(s.dataset.set==="公開状態"&&s.value==="停止"&&!admConfirm.pub){admConfirm.pub=1;admMsg("公開を停止すると、管理者以外はツールを使えなくなります。もう一度「停止」を選ぶと確定します。",true);s.value="公開";return}
+  delete admConfirm.pub;admCall({op:"setting",key:s.dataset.set,value:s.value})});
 function boot(){var a=getAuth();if(!a){showGate("login");return}
   showApp();var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}if(c&&c.data)applyData(c.data);fetchData(false)}
 /* 新しいデータがあるかだけを確認して「更新」に赤い点（反映は更新ボタンで） */

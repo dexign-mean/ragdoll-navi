@@ -28,12 +28,23 @@ function onOpen() {
 
 /* ========== メイン ========== */
 
+/* メニューから実行（結果をダイアログで表示） */
 function fetchOfficial() {
-  var ui = SpreadsheetApp.getUi(), sh = ensureOfficialSheet();
-  var items;
-  try { items = readSteamFeed(); }
+  var ui = SpreadsheetApp.getUi(), r;
+  try { r = fetchCore(); }
   catch (e) { ui.alert('取得できませんでした', String(e.message || e) + '\n\nシートの内容は変更していません。しばらくしてからもう一度お試しください。', ui.ButtonSet.OK); return; }
+  ui.alert('公式情報を取得しました', fetchSummary(r), ui.ButtonSet.OK);
+}
 
+function fetchSummary(r) {
+  return '新しい候補：' + r.added + '件（うち自動承認 ' + r.auto + '件）\n内容が変わった候補：' + r.changed + '件\n完了時刻を反映：' + r.done + '件\n対象外（英語・期間なしなど）：' + r.skipped + '件\n\n' +
+    (r.autoOn ? '黄色の行（要確認・期間変更あり）だけ確認してください。自動承認は「設定」の「自動承認」をOFFにすると止められます。' : '内容を確認し、表示するものを承認してください。') +
+    (r.boardsOk ? '' : '\n\n※ 公式掲示板を読めなかったため、リンクは公式の一覧ページにしています。');
+}
+
+/* 取得の本体（メニュー・管理者画面の両方から使う）。失敗時は例外を投げ、シートは変更しない */
+function fetchCore() {
+  var sh = ensureOfficialSheet(), items = readSteamFeed();
   var boards = readOfficialBoards();   // 公式リンク探し用（失敗しても続行）
   var last = sh.getLastRow(), existing = {};
   if (last > 1) sh.getRange(2, 1, last - 1, 17).getDisplayValues().forEach(function (r, i) { if (r[11]) existing[r[11]] = { row: i + 2, detected: r[12], state: r[1], type: r[2], start: r[4], done: r[16] }; });
@@ -65,12 +76,8 @@ function fetchOfficial() {
   });
   if (sh.getRange(1, 17).getValue() !== '完了時刻') sh.getRange(1, 17).setValue('完了時刻').setBackground('#1F3863').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 17).setValues(add);
-  if (autoN || done) { CacheService.getScriptCache().removeAll(['data']); PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now())); }
-
-  ui.alert('公式情報を取得しました',
-    '新しい候補：' + add.length + '件（うち自動承認 ' + autoN + '件）\n内容が変わった候補：' + changed + '件\n完了時刻を反映：' + done + '件\n対象外（英語・期間なしなど）：' + skipped + '件\n\n' +
-    (autoOn ? '黄色の行（要確認・期間変更あり）だけ確認してください。自動承認はシート「設定」の「自動承認」をOFFにすると止められます。' : '「公式候補」タブで内容を確認し、表示するものの「承認」にチェックしてください。') +
-    (boards.ok ? '' : '\n\n※ 公式掲示板を読めなかったため、リンクは公式の一覧ページにしています。'), ui.ButtonSet.OK);
+  if (autoN || done) bumpData();
+  return { added: add.length, auto: autoN, changed: changed, done: done, skipped: skipped, autoOn: autoOn, boardsOk: boards.ok };
 }
 
 /* 設定はキャッシュを使わずに直接読む（メニュー実行時の最新値） */

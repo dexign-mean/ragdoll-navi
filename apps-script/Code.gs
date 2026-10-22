@@ -8,6 +8,7 @@
  *   TOKEN_SECRET     トークン署名用の鍵（setup() を一度実行すると自動で作成）
  *   IMAGE_FOLDER_ID  画像フォルダのID（必須）
  *   LOG_LAST_LOGIN   "true" にするとメンバー認証の「最終ログイン日」を記録（任意）
+ *   ADMIN_CODE       管理者コード（任意）。ニックネーム＋管理者コードでログインすると管理者メニューが使える
  *
  * 通信は text/plain の POST（JSON文字列）で受け取る。CORSの事前リクエストを避けるため。
  */
@@ -51,6 +52,7 @@ function doPost(e) {
       case 'image':    res = actImage(req); break;
       case 'withdraw': res = actWithdraw(req); break;
       case 'ver':      res = actVer(req); break;
+      case 'adm':      res = actAdmin(req); break;   // 管理者用（管理.gs）
       default:         res = { ok: false, reason: 'bad_request' };
     }
   } catch (err) {
@@ -85,29 +87,36 @@ function setup() {
 function actLogin(req) {
   var name = String(req.name || '').trim(), code = String(req.code || '');
   if (!name || !code) return { ok: false, reason: 'empty', message: MSG.empty };
-  if (!isPublic()) return closedRes();
 
   var key = norm(name), cache = CacheService.getScriptCache(), fk = 'fail:' + hash(key).slice(0, 20);
   var fails = Number(cache.get(fk) || 0);
   if (fails >= FAIL_LIMIT) return { ok: false, reason: 'locked', message: MSG.locked };
 
-  var codeOk = norm(code) === norm(prop('AUTH_CODE'));
+  var adminOk = !!prop('ADMIN_CODE') && norm(code) === norm(prop('ADMIN_CODE'));
+  var codeOk = adminOk || norm(code) === norm(prop('AUTH_CODE'));
   var m = findMember(key);
   if (!codeOk || !m) {
     cache.put(fk, String(fails + 1), LOCK_SEC);
     return { ok: false, reason: 'wrong', message: MSG.wrong };
   }
   cache.remove(fk);
-  if (m.status !== '有効') return { ok: false, reason: 'blocked', message: MSG.blocked };
+  if (!adminOk) {                                   // 管理者は公開停止中・名簿の状態に関係なく入れる（元に戻せるように）
+    if (!isPublic()) return closedRes();
+    if (m.status !== '有効') return { ok: false, reason: 'blocked', message: MSG.blocked };
+  }
 
   if (prop('LOG_LAST_LOGIN') === 'true') writeMemberCell(m.row, 4, today());
-  return { ok: true, token: issueToken(m.name), name: m.name, data: buildData() };
+  var res = { ok: true, token: issueToken(m.name, adminOk), name: m.name, data: buildData() };
+  if (adminOk) res.admin = true;
+  return res;
 }
 
 function actData(req) {
   var v = checkSession(req.token);
   if (!v.ok) return v;
-  return { ok: true, token: v.token, name: v.name, data: buildData() };
+  var res = { ok: true, token: v.token, name: v.name, data: buildData() };
+  if (v.admin) res.admin = true;
+  return res;
 }
 
 /* データの版だけを返す（軽い確認用。更新ボタンの赤い点に使う） */
@@ -146,11 +155,12 @@ function actWithdraw(req) {
 function checkSession(token) {
   var t = readToken(token);
   if (!t) return { ok: false, reason: 'expired', message: MSG.expired };
-  if (!isPublic()) return closedRes();
+  var admin = t.a === 1;
+  if (!admin && !isPublic()) return closedRes();
   var m = findMember(norm(t.n));
-  if (!m || m.status !== '有効') return { ok: false, reason: 'blocked', message: MSG.blocked };
-  var fresh = (Date.now() - t.iat > REFRESH_AFTER_DAYS * 864e5) ? issueToken(m.name) : null;
-  return { ok: true, name: m.name, token: fresh };
+  if (!m || (!admin && m.status !== '有効')) return { ok: false, reason: 'blocked', message: MSG.blocked };
+  var fresh = (Date.now() - t.iat > REFRESH_AFTER_DAYS * 864e5) ? issueToken(m.name, admin) : null;
+  return { ok: true, name: m.name, token: fresh, admin: admin };
 }
 
 function closedRes() {
@@ -159,26 +169,29 @@ function closedRes() {
 }
 
 /* ========== トークン（署名付き） ========== */
-/* 認証コードを変えると、それまでのトークンはすべて無効になる（署名に含めているため） */
+/* 認証コードを変えると、それまでのトークンはすべて無効になる（署名に含めているため）
+ * 管理者トークンは管理者コードも署名に含める（管理者コードを変えると管理者ログインだけが無効になる） */
 
-function issueToken(name) {
-  var now = Date.now();
-  var body = b64(JSON.stringify({ n: name, iat: now, exp: now + TOKEN_DAYS * 864e5 }));
-  return body + '.' + sign(body);
+function issueToken(name, admin) {
+  var now = Date.now(), o = { n: name, iat: now, exp: now + TOKEN_DAYS * 864e5 };
+  if (admin) o.a = 1;
+  var body = b64(JSON.stringify(o));
+  return body + '.' + sign(body, !!admin);
 }
 
 function readToken(token) {
   if (!token || typeof token !== 'string') return null;
   var p = token.split('.');
-  if (p.length !== 2 || sign(p[0]) !== p[1]) return null;
+  if (p.length !== 2) return null;
   try {
     var o = JSON.parse(unb64(p[0]));
+    if (sign(p[0], o.a === 1) !== p[1]) return null;
     return o.exp > Date.now() ? o : null;
   } catch (e) { return null; }
 }
 
-function sign(s) {
-  var key = prop('TOKEN_SECRET') + '|' + norm(prop('AUTH_CODE'));
+function sign(s, admin) {
+  var key = prop('TOKEN_SECRET') + '|' + norm(prop('AUTH_CODE')) + (admin ? '|A|' + norm(prop('ADMIN_CODE')) : '');
   return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(s, key)).replace(/=+$/, '');
 }
 
