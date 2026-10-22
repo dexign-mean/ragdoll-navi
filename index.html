@@ -407,7 +407,8 @@ details[open]>summary::after{transform:rotate(180deg)}
         <h4>設定</h4>
         <div id="admSet"></div>
         <h4>メンバー</h4>
-        <div class="setrow"><input type="text" id="admNewName" placeholder="本キャラのニックネーム" style="max-width:240px"><button type="button" id="admAdd">追加</button></div>
+        <label class="note" style="display:grid;gap:4px">追加（1行に1人。まとめて貼り付けできます）<textarea id="admNewName" rows="3" placeholder="本キャラのニックネーム&#10;キャラB&#10;キャラC"></textarea></label>
+        <div class="setrow"><button type="button" id="admAdd">追加</button><span class="note" id="admMemCount"></span></div>
         <div id="admMem"></div>
       </div>
     </div>
@@ -967,6 +968,7 @@ function admRender(){var d=ADM;document.getElementById("btnAdm").classList.toggl
     '<label>公開状態<select data-set="公開状態"><option'+(st["公開状態"]==="公開"?" selected":"")+'>公開</option><option'+(st["公開状態"]==="停止"?" selected":"")+'>停止</option></select></label></div>'+
     '<label class="note" style="display:grid;gap:4px;margin-top:6px">お知らせ（空欄で非表示・200文字まで）<textarea id="admNotice" rows="2">'+esc(st["お知らせ"]||"")+'</textarea></label>'+
     '<div class="setrow" style="margin-top:6px"><button type="button" id="admNoticeSave">お知らせを保存</button></div>';
+  var cnt={};d.members.forEach(function(m){cnt[m.status]=(cnt[m.status]||0)+1});document.getElementById("admMemCount").textContent="登録 "+d.members.length+"人（有効 "+(cnt["有効"]||0)+" / 停止 "+(cnt["停止"]||0)+" / 退会 "+(cnt["退会"]||0)+"）";
   document.getElementById("admMem").innerHTML=d.members.length?'<table><thead><tr><th>ニックネーム</th><th>状態</th><th></th></tr></thead><tbody>'+d.members.map(function(m){
     return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td><select data-mst>'+["有効","停止","退会"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></td><td><button type="button" data-act="mem">変更</button></td></tr>'}).join("")+'</tbody></table>':'<p class="note">メンバーがいません。</p>';
 }

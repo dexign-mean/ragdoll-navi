@@ -97,12 +97,20 @@ function admSetting(req) {
 function admMember(req) {
   var sh = SpreadsheetApp.getActive().getSheetByName(SH.members);
   if (req.sub === 'add') {
-    var name = String(req.name || '').trim();
-    if (!name) return { ok: false, message: 'ニックネームを入力してください。' };
-    if (findMemberFresh(norm(name))) return { ok: false, message: 'すでに登録されています。' };
-    sh.getRange(sh.getLastRow() + 1, 1, 1, 2).setValues([[name, '有効']]);
+    // 1行に1人。改行・カンマ・読点区切りで複数まとめて追加できる（最大100人）
+    var names = String(req.name || '').split(/[\r\n,、，\t]+/).map(function (x) { return x.trim(); }).filter(Boolean).slice(0, 100);
+    if (!names.length) return { ok: false, message: 'ニックネームを入力してください。' };
     CacheService.getScriptCache().remove('members');
-    return { ok: true, message: name + ' を追加しました。' };
+    var seen = {}, add = [], dup = [];
+    names.forEach(function (n) {
+      var k = norm(n);
+      if (seen[k] || findMember(k)) { dup.push(n); return; }
+      seen[k] = 1; add.push([n, '有効']);
+    });
+    if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 2).setValues(add);
+    CacheService.getScriptCache().remove('members');
+    if (!add.length) return { ok: false, message: 'すべて登録済みです（' + dup.join('、') + '）。' };
+    return { ok: true, message: add.length + '人を追加しました。' + (dup.length ? '\n登録済みのためスキップ：' + dup.join('、') : '') };
   }
   if (req.sub === 'status') {
     var row = Number(req.row), st = String(req.status || '');
