@@ -786,12 +786,12 @@ function buildTicker(){
   DATA.schedule.filter(function(s){return s.type!=="season"&&s.start>today&&s.start<=soon}).sort(byStart).forEach(function(s){
     out.push({tag:TAG[s.type],text:md(s.start)+"（"+DOW[dowOf(s.start)]+"） "+s.name,ev:s.id,url:s.url})});
   for(var i=0;i<=7;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW){out.push({tag:TAG.maint,text:(i===0?"本日":md(k)+"（水）")+" 定期メンテナンス（時間未定）"});break}}
-  if(!out.length)out.push({tag:"お知らせ",text:"-"});
+  if(!out.length)out.push({tag:"",text:"-"});
   tkItems=out;if(tkIdx>=out.length)tkIdx=0;
 }
 function renderTicker(anim){
   var it=tkItems[tkIdx],body=document.getElementById("tkBody");if(!it){body.innerHTML="";return}
-  var c=it.ev?colorOf[it.ev]:0,inner=(c?'<i class="sw2 c'+c+'" aria-hidden="true"></i>':'')+'<span class="tag">'+esc(it.tag)+'</span><span class="tt">'+esc(it.text)+'</span>';
+  var c=it.ev?colorOf[it.ev]:0,inner=(c?'<i class="sw2 c'+c+'" aria-hidden="true"></i>':'')+(it.tag?'<span class="tag">'+esc(it.tag)+'</span>':'')+'<span class="tt">'+esc(it.text)+'</span>';
   body.innerHTML=it.url?'<a class="tk-item'+(anim?" tk-fade":"")+'" href="'+esc(it.url)+'" target="_blank" rel="noopener">'+inner+' ↗</a>':
     '<button type="button" class="tk-item'+(it.warn?" warn":"")+(anim?" tk-fade":"")+'"'+(it.ev?' data-tkev="'+it.ev+'"':'')+'>'+inner+'</button>';
   document.getElementById("tkDots").innerHTML=tkItems.map(function(_,i){return'<i'+(i===tkIdx?' class="on"':'')+'></i>'}).join("");
