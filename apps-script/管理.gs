@@ -50,8 +50,8 @@ function admList() {
   if (!settings['公開状態']) settings['公開状態'] = '公開';
   var ms = ss.getSheetByName(SH.members), members = [];
   if (ms && ms.getLastRow() > 1) {
-    ms.getRange(2, 1, ms.getLastRow() - 1, 5).getDisplayValues().forEach(function (r, i) {
-      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], memo: r[4] });
+    ms.getRange(2, 1, ms.getLastRow() - 1, 6).getDisplayValues().forEach(function (r, i) {
+      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], memo: r[4], joined: r[5] });
     });
   }
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;
@@ -105,9 +105,9 @@ function admMember(req) {
     names.forEach(function (n) {
       var k = norm(n);
       if (seen[k] || findMember(k)) { dup.push(n); return; }
-      seen[k] = 1; add.push([n, '有効']);
+      seen[k] = 1; add.push([n, '有効', '', '', '', today()]);
     });
-    if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 2).setValues(add);
+    if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 6).setValues(add);
     CacheService.getScriptCache().remove('members');
     if (!add.length) return { ok: false, message: 'すべて登録済みです（' + dup.join('、') + '）。' };
     return { ok: true, message: add.length + '人を追加しました。' + (dup.length ? '\n登録済みのためスキップ：' + dup.join('、') : '') };

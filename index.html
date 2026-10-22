@@ -49,6 +49,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .adm th{color:var(--muted);font-weight:600;border-top:none}
 .adm .amsg{font-size:12.5px;white-space:pre-line}
 .adm .danger{border-color:var(--warn);color:var(--warn)}
+#admMemFilter button{padding:3px 12px;font-size:12.5px;border-radius:99px}
+#admMemFilter button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 .hbtn.badge{position:relative}.hbtn.badge::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .adm .acard.warn{background:#3A3215}}
 .wdbox{display:grid;gap:8px;padding:12px;border:1px solid var(--warn);border-radius:8px}
@@ -409,6 +411,7 @@ details[open]>summary::after{transform:rotate(180deg)}
         <h4>メンバー</h4>
         <label class="note" style="display:grid;gap:4px">追加（1行に1人。まとめて貼り付けできます）<textarea id="admNewName" rows="3" placeholder="本キャラのニックネーム&#10;キャラB&#10;キャラC"></textarea></label>
         <div class="setrow"><button type="button" id="admAdd">追加</button><span class="note" id="admMemCount"></span></div>
+        <div class="setrow" id="admMemFilter"><button type="button" data-mf="" aria-pressed="true">すべて</button><button type="button" data-mf="有効" aria-pressed="false">有効</button><button type="button" data-mf="停止" aria-pressed="false">停止</button><button type="button" data-mf="退会" aria-pressed="false">退会</button><input type="text" id="admMemQ" placeholder="名前で検索" style="max-width:180px"></div>
         <div id="admMem"></div>
       </div>
     </div>
@@ -969,8 +972,14 @@ function admRender(){var d=ADM;document.getElementById("btnAdm").classList.toggl
     '<label class="note" style="display:grid;gap:4px;margin-top:6px">お知らせ（空欄で非表示・200文字まで）<textarea id="admNotice" rows="2">'+esc(st["お知らせ"]||"")+'</textarea></label>'+
     '<div class="setrow" style="margin-top:6px"><button type="button" id="admNoticeSave">お知らせを保存</button></div>';
   var cnt={};d.members.forEach(function(m){cnt[m.status]=(cnt[m.status]||0)+1});document.getElementById("admMemCount").textContent="登録 "+d.members.length+"人（有効 "+(cnt["有効"]||0)+" / 停止 "+(cnt["停止"]||0)+" / 退会 "+(cnt["退会"]||0)+"）";
-  document.getElementById("admMem").innerHTML=d.members.length?'<table><thead><tr><th>ニックネーム</th><th>状態</th><th></th></tr></thead><tbody>'+d.members.map(function(m){
-    return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td><select data-mst>'+["有効","停止","退会"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></td><td><button type="button" data-act="mem">変更</button></td></tr>'}).join("")+'</tbody></table>':'<p class="note">メンバーがいません。</p>';
+  admMemRender()}
+var admMF="",admMQ="";
+function admMemRender(){var d=ADM;if(!d)return;var ORD={"有効":0,"停止":1,"退会":2},nk=function(x){return x.normalize("NFKC").toLowerCase().replace(/[\u3041-\u3096]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+96)})},q=nk(admMQ);
+  var list=d.members.filter(function(m){return(!admMF||m.status===admMF)&&(!q||nk(m.name).indexOf(q)>=0)})
+    .sort(function(a,b){var x=(ORD[a.status]==null?3:ORD[a.status])-(ORD[b.status]==null?3:ORD[b.status]);if(x)return x;var ja=a.joined||"",jb=b.joined||"";return ja<jb?-1:ja>jb?1:a.row-b.row});
+  document.querySelectorAll("#admMemFilter [data-mf]").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.mf===admMF))});
+  document.getElementById("admMem").innerHTML=list.length?'<table><thead><tr><th>ニックネーム</th><th>登録日</th><th>状態</th><th></th></tr></thead><tbody>'+list.map(function(m){
+    return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td class="num">'+esc(m.joined||"-")+'</td><td><select data-mst>'+["有効","停止","退会"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></td><td><button type="button" data-act="mem">変更</button></td></tr>'}).join("")+'</tbody></table>':'<p class="note">'+(d.members.length?'該当するメンバーがいません。':'メンバーがいません。')+'</p>';
 }
 function admField(card,f){var el=card.querySelector('[data-f="'+f+'"]');return el?el.value.trim():""}
 document.getElementById("admBox").addEventListener("click",function(e){var t=e.target.closest("button,input[type=checkbox]");if(!t)return;
@@ -988,6 +997,8 @@ document.getElementById("admBox").addEventListener("click",function(e){var t=e.t
     if((st==="停止"||st==="退会")&&!admConfirm[k]){admConfirm[k]=1;t.textContent="もう一度押して確定";t.classList.add("danger");return}
     delete admConfirm[k];admCall({op:"member",sub:"status",row:+r.dataset.mrow,name:r.dataset.mname,status:st},t);return}
 });
+document.getElementById("admMemFilter").addEventListener("click",function(e){var b=e.target.closest("[data-mf]");if(!b)return;admMF=b.dataset.mf;admMemRender()});
+document.getElementById("admMemQ").addEventListener("input",function(){admMQ=this.value.trim();admMemRender()});
 document.getElementById("admBox").addEventListener("change",function(e){var s=e.target.closest("[data-set]");if(!s)return;
   if(s.dataset.set==="公開状態"&&s.value==="停止"&&!admConfirm.pub){admConfirm.pub=1;admMsg("公開を停止すると、管理者以外はツールを使えなくなります。もう一度「停止」を選ぶと確定します。",true);s.value="公開";return}
   delete admConfirm.pub;admCall({op:"setting",key:s.dataset.set,value:s.value})});
