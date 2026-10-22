@@ -144,6 +144,9 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:var
 .sh2 .scope{margin:0}
 .sgrid{display:grid;gap:3px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .item.gap{visibility:hidden;min-height:36px}
+.cell>.item{height:36px;min-width:0}
+.cell>.item .chk{overflow:hidden}
+.cell>.item .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .colh{display:flex;align-items:baseline;gap:8px;padding:0 4px}
 .colh strong{font-size:14.5px;color:var(--navy)}
 .colh .srv{font-size:11.5px;color:var(--muted)}
@@ -695,7 +698,7 @@ function applyZoom(){var z=S.zoom||1;document.querySelector(".wrap").style.zoom=
 function scopeKey(it,ch){return it.unit==="サーバー共通"?"s:all":"c:"+ch.id}
 var showHid={};
 function itemRow(i,ch,hidden,hkey){var k=i.id+"@"+(ch?scopeKey(i,ch):"s:all"),on=!!S.checks[k];
-  return'<div class="item'+(on?" done":"")+(hidden?" off":"")+'">'+(hidden?'<span class="chk"><span class="t">'+esc(i.name)+'</span></span>':'<label class="chk"><input type="checkbox" data-k="'+esc(k)+'"'+(on?" checked":"")+'><span class="t">'+esc(i.name)+'</span></label>')+
+  return'<div class="item'+(on?" done":"")+(hidden?" off":"")+'">'+(hidden?'<span class="chk"><span class="t">'+esc(i.name)+'</span></span>':'<label class="chk" title="'+esc(i.name)+'"><input type="checkbox" data-k="'+esc(k)+'"'+(on?" checked":"")+'><span class="t">'+esc(i.name)+'</span></label>')+
   '<button type="button" class="ico bare" data-hide="'+i.id+'" data-ch="'+hkey+'" aria-pressed="'+(!hidden)+'" aria-label="'+esc(i.name)+(hidden?"を表示":"を非表示")+'" title="'+(hidden?"表示する":"非表示にする")+'">'+svg("eye",hidden)+'</button></div>'}
 function hidList(kind,key,items,ch){if(!items.length)return"";var hk=kind+"@"+key;
   return'<div class="hid"><button type="button" class="ghost" data-showhid="'+hk+'">非表示 '+items.length+'件 '+(showHid[hk]?"▲":"▼")+'</button></div>'+(showHid[hk]?items.map(function(i){return itemRow(i,ch,true,key)}).join(""):"")}
@@ -720,12 +723,11 @@ function renderChecks(){
     var rs=kind==="日課"?"16:00リセット":"水 16:00リセット（あと"+Math.ceil((lastWeekly(t0)+7*DAY-t0)/DAY)+"日）";
     html+='<button type="button" class="khead span" data-kind="'+kind+'" aria-expanded="'+open+'"><span class="kt">'+kind+'</span><span class="rs">'+rs+'</span><span class="car" aria-hidden="true">▼</span></button>';
     if(!open)return;
-    var rowsAll=own.filter(function(i){return cs.some(function(c){return!(S.hidden[c.id]||{})[i.id]})});
-    cs.forEach(function(ch){var hid=S.hidden[ch.id]||{},vis=own.filter(function(i){return!hid[i.id]}),hidden=own.filter(function(i){return hid[i.id]});
+        cs.forEach(function(ch){var hid=S.hidden[ch.id]||{},vis=own.filter(function(i){return!hid[i.id]}),hidden=own.filter(function(i){return hid[i.id]});
       var done=vis.filter(function(i){return S.checks[i.id+"@c:"+ch.id]}).length;
       var c='<div class="cnt num">'+done+'/'+vis.length+'</div>';
-      rowsAll.forEach(function(i){c+=hid[i.id]?'<div class="item gap" aria-hidden="true"></div>':itemRow(i,ch,false,ch.id)});
-      if(!rowsAll.length)c+='<p class="empty">項目はありません</p>';
+      vis.forEach(function(i){c+=itemRow(i,ch,false,ch.id)});            /* 非表示の項目は詰めて表示（空白を作らない） */
+      if(!vis.length)c+='<p class="empty">項目はありません</p>';
       c+=hidList(kind,ch.id,hidden,ch);
       html+='<div class="cell">'+c+'</div>'});
     if(shared.length){var vs=shared.filter(function(i){return!sh[i.id]}),hs=shared.filter(function(i){return sh[i.id]});
