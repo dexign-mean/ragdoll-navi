@@ -702,7 +702,7 @@ function applyZoom(){var z=S.zoom||1;document.querySelector(".wrap").style.zoom=
 function scopeKey(it,ch){return it.unit==="サーバー共通"?"s:all":"c:"+ch.id}
 var showHid={};
 function itemRow(i,ch,hidden,hkey){var k=i.id+"@"+(ch?scopeKey(i,ch):"s:all"),on=!!S.checks[k];
-  return'<div class="item'+(on?" done":"")+(hidden?" off":"")+'">'+(hidden?'<span class="chk"><span class="t">'+esc(i.name)+'</span></span>':'<label class="chk" title="'+esc(i.name)+'"><input type="checkbox" data-k="'+esc(k)+'"'+(on?" checked":"")+'><span class="t">'+esc(i.name)+'</span></label>')+
+  return'<div class="item'+(on?" done":"")+(hidden?" off":"")+'">'+(hidden?'<span class="chk"><span class="t">'+esc(i.name)+'</span></span>':'<label class="chk" title="'+esc(i.name+(i.desc?"："+i.desc:""))+'"><input type="checkbox" data-k="'+esc(k)+'"'+(on?" checked":"")+'><span class="t">'+esc(i.name)+'</span></label>')+
   '<button type="button" class="ico bare" data-hide="'+i.id+'" data-ch="'+hkey+'" aria-pressed="'+(!hidden)+'" aria-label="'+esc(i.name)+(hidden?"を表示":"を非表示")+'" title="'+(hidden?"表示する":"非表示にする")+'">'+svg("eye",hidden)+'</button></div>'}
 function hidList(kind,key,items,ch){if(!items.length)return"";var hk=kind+"@"+key;
   return'<div class="hid"><button type="button" class="ghost" data-showhid="'+hk+'">非表示 '+items.length+'件 '+(showHid[hk]?"▲":"▼")+'</button></div>'+(showHid[hk]?items.map(function(i){return itemRow(i,ch,true,key)}).join(""):"")}
