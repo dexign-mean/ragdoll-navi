@@ -176,6 +176,8 @@ details[open]>summary::after{transform:rotate(180deg)}
 .home{display:grid;gap:14px}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin-top:-4px}
 .tabs::-webkit-scrollbar{display:none}
+#btnRefresh{position:relative}
+#btnRefresh.rdot::before{content:"";position:absolute;top:3px;left:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
 .tab{border:none;border-radius:0;background:transparent;padding:8px 14px;color:var(--muted);font-weight:700;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tab:hover{color:var(--ink);border-color:transparent;border-bottom-color:var(--line)}
 .tab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--accent)}
@@ -858,7 +860,7 @@ function fetchData(manual){var a=getAuth();if(!a||fetching)return;fetching=true;
   api({action:"data",token:a.token}).then(function(r){fetching=false;
     if(!r.ok){handleFail(r);return}
     if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}
-    ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));applyData(r.data);setStatus(manual?"最新の状態です（"+r.data.updated+"）":"",false,"hdrStatus")
+    ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));applyData(r.data);setDot(false);setStatus(manual?"最新バージョン（"+r.data.updated+"）":"",false,"hdrStatus")
   }).catch(function(){fetching=false;setStatus("サーバーに接続できません（前回のデータで表示中）",true,"hdrStatus")})}
 document.getElementById("lgEye").innerHTML=svg("eye",true);
 document.getElementById("lgEye").addEventListener("click",function(){var i=document.getElementById("lgCode"),show=i.type==="password";i.type=show?"text":"password";
@@ -882,8 +884,14 @@ function withdraw(){var a=getAuth();if(!a)return;var wipe=document.getElementByI
   }).catch(function(){b.disabled=false;setStatus("サーバーに接続できません。しばらくしてからもう一度お試しください。",true,"hdrStatus")})}
 function boot(){var a=getAuth();if(!a){showGate("login");return}
   showApp();var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}if(c&&c.data)applyData(c.data);fetchData(false)}
-setInterval(function(){if(!document.hidden)fetchData(false)},15*60e3);
-document.addEventListener("visibilitychange",function(){if(!document.hidden){var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}if(!c||Date.now()-c.at>5*60e3)fetchData(false)}});
+/* 新しいデータがあるかだけを確認して「更新」に赤い点（反映は更新ボタンで） */
+var lastVerCheck=0;
+function setDot(on){var b=document.getElementById("btnRefresh");b.classList.toggle("rdot",on);b.title=on?"新しい情報があります。押すと反映します":"最新のデータを読み込む"}
+function checkVer(){var a=getAuth();if(!a||fetching)return;lastVerCheck=Date.now();
+  api({action:"ver",token:a.token}).then(function(r){if(!r.ok){handleFail(r);return}if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}
+    var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}var cur=c&&c.data&&c.data.ver||0;setDot(r.ver>cur)}).catch(function(){})}
+setInterval(function(){if(!document.hidden)checkVer()},5*60e3);
+document.addEventListener("visibilitychange",function(){if(!document.hidden&&Date.now()-lastVerCheck>60e3)checkVer()});
 applyZoom();syncSettingsUi();if(S.tab&&S.tab!=="home")showTab(S.tab);renderChars();applyResets();renderChecks();renderCal();renderDay();updateNotifyUi();tick();boot();
 setInterval(tick,1000);
 setInterval(renderChecks,60000);

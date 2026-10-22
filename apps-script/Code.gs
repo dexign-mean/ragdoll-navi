@@ -49,6 +49,7 @@ function doPost(e) {
       case 'data':     res = actData(req); break;
       case 'image':    res = actImage(req); break;
       case 'withdraw': res = actWithdraw(req); break;
+      case 'ver':      res = actVer(req); break;
       default:         res = { ok: false, reason: 'bad_request' };
     }
   } catch (err) {
@@ -107,6 +108,15 @@ function actData(req) {
   if (!v.ok) return v;
   return { ok: true, token: v.token, name: v.name, data: buildData() };
 }
+
+/* データの版だけを返す（軽い確認用。更新ボタンの赤い点に使う） */
+function actVer(req) {
+  var v = checkSession(req.token);
+  if (!v.ok) return v;
+  return { ok: true, token: v.token, ver: dataVer() };
+}
+
+function dataVer() { return Number(prop('DATA_VER')) || 0; }
 
 function actImage(req) {
   var v = checkSession(req.token);
@@ -214,7 +224,8 @@ function buildData() {
       timers: readTimers(),
       schedule: readSchedule(),
       legion: readLegion(),
-      updated: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm')
+      ver: dataVer(),
+      updated: Utilities.formatDate(dataVer() ? new Date(dataVer()) : new Date(), TZ, 'yyyy-MM-dd HH:mm')
     };
   });
 }
@@ -304,6 +315,9 @@ function cached(key, fn) {
 }
 
 /* シートを編集したらキャッシュを消す（すぐ反映させるため）。トリガー不要の単純トリガー */
-function onEdit() {
+/* 名簿以外を編集した時はデータの版も上げる（ツールの「更新」に赤い点が出る） */
+function onEdit(e) {
   CacheService.getScriptCache().removeAll(['data', 'settings', 'members']);
+  var name = e && e.range ? e.range.getSheet().getName() : '';
+  if (name !== SH.members) PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now()));
 }
