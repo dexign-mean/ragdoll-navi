@@ -1,14 +1,14 @@
 <title>Ragdoll ナビ</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
 <style>
 /* Layout: 縦一列のコンパクトな作業盤。上から「定時イベント → キャラ選択 → 日課・週課（折りたたみ）→ カレンダー → 設定」。ゲーム横に置ける幅を想定 */
 :root{
   --bg:#EEF2F8; --surface:#FFFFFF; --sunk:#E4EAF3; --ink:#15223B; --muted:#5A6781; --line:#D3DBE8;
   --navy:#1F3863; --accent:#127F86; --accent-soft:#D6EEEF; --warn:#A85A12; --warn-soft:#F6E6D3; --ok:#2C7A4B;
-  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
-  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --f-num:"BIZ UDGothic","BIZ UDPGothic","Hiragino Sans","Meiryo",sans-serif;
   --r:10px;
   --c1:#2F6FD6;--c1s:#DCE7FA;--c2:#8A4FC7;--c2s:#ECE1F7;--c3:#D0487A;--c3s:#F8DFE8;--c4:#0E8F8F;--c4s:#D2EEEE;--c5:#B07D00;--c5s:#F5ECD2;--c6:#4F7F2A;--c6s:#E3EDD9;--c7:#5C6BC0;--c7s:#E1E4F5;--c8:#E05A47;--c8s:#FADFDB;
 }
@@ -134,6 +134,7 @@ section{background:var(--surface);border:1px solid var(--line);border-radius:var
 .coledit{display:grid;gap:6px;background:var(--sunk);border-radius:8px;padding:8px}
 .chip.add{color:var(--muted);border-style:dashed;padding:4px 12px;min-width:36px;justify-content:center}
 .chip.add:hover{color:var(--accent);border-color:var(--accent)}
+.chint{font-size:12.5px;color:var(--muted)}
 .addchar{display:flex;gap:6px;flex-wrap:wrap}
 .chars{width:100%}
 .addchar input{flex:1 1 140px}
@@ -578,6 +579,7 @@ function renderChars(){
     return'<span class="'+cls+'"><button type="button" class="cname" data-id="'+c.id+'">'+labelHtml(c)+'</button>'+
       (all?'<button type="button" class="ico bare" data-eye="'+c.id+'" aria-pressed="'+shown+'" aria-label="'+esc(plainLabel(c))+(shown?"を非表示":"を表示")+'" title="'+(shown?"非表示にする":"表示する")+'">'+svg("eye",!shown)+'</button>':'')+'</span>'}).join("");
   html+='<button type="button" class="chip add" id="btnAdd" title="キャラ追加" aria-label="キャラ追加">＋</button>';
+  if(!S.chars.length)html+='<span class="chint">まずは「＋」からキャラを追加してください。日課・週課のチェックリストが表示されます。</span>';
   if(S.chars.length&&!narrow()){/* mode */var m=S.view==="one"?"one":"all";
     html+='<button type="button" class="ico wide" id="btnMode" aria-pressed="true" title="'+(m==="all"?"表示：全員（クリックで個別に切り替え）":"表示：個別（クリックで全員に切り替え）")+'">'+svg(m==="all"?"users":"user")+'<span>'+(m==="all"?"全員":"個別")+'</span></button>'}
   box.innerHTML=html;
@@ -783,6 +785,8 @@ function buildTicker(){
     out.push({tag:TAG[s.type],text:s.name+(s.start===s.end?"":"　〜"+md(s.end)),ev:s.id,url:s.url})});
   DATA.schedule.filter(function(s){return s.type!=="season"&&s.start>today&&s.start<=soon}).sort(byStart).forEach(function(s){
     out.push({tag:TAG[s.type],text:md(s.start)+"（"+DOW[dowOf(s.start)]+"） "+s.name,ev:s.id,url:s.url})});
+  for(var i=0;i<=7;i++){var k=addDays(today,i);if(dowOf(k)===WEEK_DOW){out.push({tag:TAG.maint,text:(i===0?"本日":md(k)+"（水）")+" 定期メンテナンス（時間未定）"});break}}
+  if(!out.length)out.push({tag:"お知らせ",text:"-"});
   tkItems=out;if(tkIdx>=out.length)tkIdx=0;
 }
 function renderTicker(anim){
