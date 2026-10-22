@@ -36,7 +36,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .gerr{color:var(--warn);font-size:12.5px;min-height:1em;margin:0}
 .gmsg{font-size:14px;line-height:1.7;margin:0}
 .acct{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
-.adm{display:grid;gap:12px;border-top:1px dashed var(--line);padding-top:12px}
+.adm{display:grid;gap:12px}
+#view-adm{max-width:760px}
 .adm h4{margin:6px 0 0;font-size:13px;color:var(--navy)}
 .adm .acard{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px;background:var(--surface)}
 .adm .acard.warn{border-color:#E0B400;background:#FFF9E0}
@@ -314,6 +315,7 @@ details[open]>summary::after{transform:rotate(180deg)}
       <button type="button" class="ghost" id="btnRefresh" title="最新のデータを読み込む">更新</button>
       <span class="zoomwrap"><button type="button" class="ico hbtn" id="btnZoom" aria-pressed="false" aria-expanded="false" aria-label="表示サイズ" title="表示サイズ"><span class="aa">Aa</span></button>
         <span class="zoompop" id="zoomPop" hidden role="group" aria-label="表示サイズ"><button type="button" data-zoom="0.85">小</button><button type="button" data-zoom="1">標準</button><button type="button" data-zoom="1.15">大</button></span></span>
+      <button type="button" class="ico hbtn" data-tab="adm" id="btnAdm" hidden aria-pressed="false" aria-label="管理者メニュー" title="管理者メニュー"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
       <button type="button" class="ico hbtn" data-tab="help" aria-pressed="false" aria-label="使い方・よくある質問" title="使い方・よくある質問"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.3-2.5 3.8"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/></svg></button>
       <button type="button" class="ico hbtn" data-tab="set" aria-pressed="false" aria-label="設定" title="設定"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </nav>
@@ -392,6 +394,25 @@ details[open]>summary::after{transform:rotate(180deg)}
     </div>
   </section>
 
+  <section class="view" id="view-adm" hidden aria-label="管理者">
+    <div class="dbody">
+      <div class="adm" id="admBox">
+        <strong class="sh">管理者メニュー</strong>
+        <p class="note">このページは管理者だけに表示されます。変更はすべてシートに記録されます。</p>
+        <h4>公式情報</h4>
+        <div class="setrow"><button type="button" class="primary" id="admFetch">公式情報を取得</button><button type="button" class="ghost" id="admReload">一覧を読み込み直す</button></div>
+        <p class="amsg note" id="admMsg" aria-live="polite"></p>
+        <div id="admPending"></div>
+        <details><summary>すべての候補</summary><div id="admAll"></div></details>
+        <h4>設定</h4>
+        <div id="admSet"></div>
+        <h4>メンバー</h4>
+        <div class="setrow"><input type="text" id="admNewName" placeholder="本キャラのニックネーム" style="max-width:240px"><button type="button" id="admAdd">追加</button></div>
+        <div id="admMem"></div>
+      </div>
+    </div>
+  </section>
+
   <section class="view" id="view-set" hidden aria-label="設定">
     <div class="dbody">
     <strong class="sh">通知</strong>
@@ -425,19 +446,6 @@ details[open]>summary::after{transform:rotate(180deg)}
           <label class="note"><input type="checkbox" id="wdWipe"> このブラウザのキャラ・チェック・メモ・設定も削除する</label>
           <div class="setrow"><button type="button" class="primary" id="wdYes">退会する</button><button type="button" class="ghost" id="wdNo">キャンセル</button></div>
         </div>
-      </div>
-      <div class="adm" id="admBox" hidden>
-        <strong class="sh">管理者</strong>
-        <h4>公式情報</h4>
-        <div class="setrow"><button type="button" class="primary" id="admFetch">公式情報を取得</button><button type="button" class="ghost" id="admReload">一覧を読み込み直す</button></div>
-        <p class="amsg note" id="admMsg" aria-live="polite"></p>
-        <div id="admPending"></div>
-        <details><summary>すべての候補</summary><div id="admAll"></div></details>
-        <h4>設定</h4>
-        <div id="admSet"></div>
-        <h4>メンバー</h4>
-        <div class="setrow"><input type="text" id="admNewName" placeholder="本キャラのニックネーム" style="max-width:240px"><button type="button" id="admAdd">追加</button></div>
-        <div id="admMem"></div>
       </div>
       <div class="backup">
         <strong class="sh">バックアップ</strong>
@@ -592,9 +600,9 @@ function plainLabel(c){var k=cls(c.cls);return c.name||(k?k[2]:"")}
 function labelHtml(c){var k=cls(c.cls);return(k?'<span class="cls" aria-hidden="true">'+k[1]+'</span>':'')+esc(plainLabel(c))}
 var editId=null,delId=null;
 var curTab="home",prevTab="home";
-function isOv(n){return n==="set"||n==="help"}
-function showTab(name){if(isOv(name)&&curTab===name)name=prevTab;if(!isOv(name))prevTab=name;curTab=name;if(name==="set"&&isAdm())admCall({op:"list"});
-  ["home","cal","guide","raid","set","help"].forEach(function(n){document.getElementById("view-"+n).hidden=(n!==name)});
+function isOv(n){return n==="set"||n==="help"||n==="adm"}
+function showTab(name){if(isOv(name)&&curTab===name)name=prevTab;if(!isOv(name))prevTab=name;curTab=name;if(name==="adm"){if(isAdm())admCall({op:"list"});else{name=prevTab;curTab=name}}
+  ["home","cal","guide","raid","set","help","adm"].forEach(function(n){document.getElementById("view-"+n).hidden=(n!==name)});
   document.querySelectorAll(".tab").forEach(function(b){b.setAttribute("aria-selected",String(b.dataset.tab===name))});
   document.querySelectorAll('.hbtn[data-tab]').forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.tab===name))});
   if(name==="cal"){renderCal();renderLists();renderDay()}
@@ -931,7 +939,7 @@ function withdraw(){var a=getAuth();if(!a)return;var wipe=document.getElementByI
 /* ===== 管理者 ===== */
 var ADM=null,admConfirm={};
 function isAdm(){var a=getAuth();return!!(a&&a.admin)}
-function admInit(){var on=isAdm();document.getElementById("admBox").hidden=!on;if(!on){document.querySelector('.hbtn[data-tab="set"]').classList.remove("badge");return}if(!ADM)admCall({op:"list"})}
+function admInit(){var on=isAdm(),b=document.getElementById("btnAdm");b.hidden=!on;if(!on){b.classList.remove("badge");ADM=null;if(curTab==="adm")showTab("home");return}if(!ADM)admCall({op:"list"})}
 function admCall(body,btn){var a=getAuth();if(!a)return;body.action="adm";body.token=a.token;if(btn)btn.disabled=true;
   if(body.op==="fetch")admMsg("取得中…（数秒かかります）");
   return api(body).then(function(r){if(btn)btn.disabled=false;
@@ -942,7 +950,7 @@ function admCall(body,btn){var a=getAuth();if(!a)return;body.action="adm";body.t
     if(r.ok&&body.op!=="list")fetchData(false)
   }).catch(function(){if(btn)btn.disabled=false;admMsg("サーバーに接続できません。",true)})}
 function admMsg(t,err){var m=document.getElementById("admMsg");m.textContent=t||"";m.classList.toggle("status",!!t);m.classList.toggle("err",!!err)}
-function admRender(){var d=ADM;document.querySelector('.hbtn[data-tab="set"]').classList.toggle("badge",d.pending>0);
+function admRender(){var d=ADM;document.getElementById("btnAdm").classList.toggle("badge",d.pending>0);
   var pend=d.cands.filter(function(c){return c.state==="要確認"||c.state==="期間変更あり"});
   document.getElementById("admPending").innerHTML=pend.length?'<p class="note">確認が必要な候補：'+pend.length+'件</p>'+pend.map(function(c){
     return'<div class="acard warn" data-row="'+c.row+'" data-key="'+esc(c.id||c.name)+'"><div><strong>'+esc(c.state)+'</strong> · '+esc(c.type)+(c.url?' · <a href="'+esc(c.url)+'" target="_blank" rel="noopener">公式 ↗</a>':'')+'</div>'+
