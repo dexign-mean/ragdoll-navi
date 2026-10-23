@@ -212,7 +212,8 @@ details[open]>summary::after{transform:rotate(180deg)}
 .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;margin-top:-4px}
 .tabs::-webkit-scrollbar{display:none}
 #btnRefresh{position:relative}
-#btnRefresh.rdot::before{content:"";position:absolute;top:3px;left:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
+.rdot{position:relative}
+#btnRefresh.rdot::before,.gside .rdot::before{content:"";position:absolute;top:3px;left:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
 .tab{border:none;border-radius:0;background:transparent;padding:8px 14px;color:var(--muted);font-weight:700;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
 .tab:hover{color:var(--ink);border-color:transparent;border-bottom-color:var(--line)}
 .tab[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--accent)}
@@ -230,17 +231,30 @@ details[open]>summary::after{transform:rotate(180deg)}
 .steps{margin:0;padding-left:1.4em;display:grid;gap:6px;font-size:13px;line-height:1.7}.steps b{color:var(--navy)}
 .view>.dbody{padding-top:16px}
 /* guide */
-.gwrap{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:480px}
-.gnav{border-right:1px solid var(--line);padding:14px 10px;display:grid;align-content:start;gap:12px;position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px);overflow-y:auto}
-.gnav .gh{font-size:11px;letter-spacing:.06em;color:var(--muted);font-weight:700;padding:0 8px;margin-bottom:2px}
-.gnav ul{list-style:none;margin:0;padding:0;display:grid;gap:1px}
-.gnav button{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;padding:6px 8px;border-radius:7px;font-size:13px}
-.gnav button:hover{background:var(--sunk)}
-.gnav button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.gnav button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.gwrap{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:480px}
+.gside{position:sticky;top:12px;align-self:start;border-right:1px solid var(--line);z-index:5}
+.gnav{padding:10px 8px 14px;display:grid;align-content:start;gap:1px;max-height:calc(100vh - 24px);overflow-y:auto;background:var(--surface)}
+.gnav .gtop{display:flex;align-items:center;gap:6px;padding:0 0 6px}
+.gnav .gtop .lbl{font-size:12px;color:var(--muted)}
+.gnav .gg{all:unset;cursor:pointer;display:flex;align-items:center;gap:6px;box-sizing:border-box;width:100%;padding:7px 8px;border-radius:7px;font-size:13px;font-weight:700;color:var(--ink);position:relative}
+.gnav .gg svg{width:14px;height:14px;flex:none;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.gnav .gg[aria-expanded="true"] svg{transform:rotate(90deg)}
+.gnav .gg .ct{margin-left:auto;font-size:11px;font-weight:400;color:var(--muted)}
+.gnav ul{list-style:none;margin:0 0 4px;padding:0;display:grid;gap:1px}
+.gnav .gi{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;padding:6px 8px 6px 28px;border-radius:7px;font-size:13px;color:var(--muted);position:relative}
+.gnav .gg:hover,.gnav .gi:hover{background:var(--sunk);color:var(--ink)}
+.gnav .gg:focus-visible,.gnav .gi:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.gnav .gi[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
+.grail{display:none;padding:10px 4px;justify-items:center}
+.gpin svg{width:18px;height:18px}
+.gwrap.col{grid-template-columns:44px minmax(0,1fr)}
+.gwrap.col .grail{display:grid;align-content:start;height:calc(100vh - 24px)}
+.gwrap.col .gnav{display:none}
+.gwrap.col.peek .gnav{display:grid;position:absolute;left:0;top:0;width:220px;border:1px solid var(--line);border-radius:0 var(--r) var(--r) 0;box-shadow:0 8px 24px rgba(10,20,40,.16)}
 .gsel{display:none;padding:12px 14px;border-bottom:1px solid var(--line)}
 .gsel select{width:100%;padding:8px;font-size:14px}
 .gmain{min-width:0}
+#gtoc{position:sticky;top:0;z-index:3;background:var(--surface);padding:8px 0;margin:-8px 0 0;border-bottom:1px solid var(--line)}
 #view-guide .gbody{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .gbody{padding:18px 22px 28px;min-width:0;display:grid;align-content:start;gap:12px}
 .gbody h2{margin:0;font-size:19px;color:var(--navy)}
@@ -253,7 +267,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .gtoc button{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--sunk);border:1px solid transparent;color:var(--ink)}
 .gtoc button:hover{border-color:var(--accent);color:var(--accent)}
 .gtoc button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
-#gtoc{scroll-margin-top:12px}
+
 .gnote{margin:0;font-size:12px;color:var(--muted);line-height:1.7}
 .gpara{margin:0;font-size:13px;line-height:1.75}
 .gtbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
@@ -283,7 +297,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .glb.zoom img{width:auto;height:auto;max-width:none;cursor:zoom-out;margin:auto}
 .glb-x{justify-self:end;color:#fff;font-size:18px}
 .glb-cap{margin:0;color:#fff;text-align:center;font-size:13px}
-@container (max-width:640px){.gwrap{grid-template-columns:1fr}.gnav{display:none}.gsel{display:block}.gbody{padding:14px}}
+@container (max-width:640px){.gwrap,.gwrap.col{grid-template-columns:1fr}.gside{display:none}.gsel{display:block}.gbody{padding:14px}}
 .soon{padding:24px 20px;display:grid;gap:6px}
 .soon strong{color:var(--navy)}
 .homebtn{all:unset;cursor:pointer;color:inherit}
@@ -457,7 +471,7 @@ details[open]>summary::after{transform:rotate(180deg)}
   </section>
 
   <section class="view" id="view-guide" hidden aria-label="ガイド">
-    <div class="gwrap"><nav class="gnav" id="gnav" aria-label="ガイドのメニュー"></nav><div class="gmain"><div class="gsel"><select id="gsel" aria-label="ガイドのメニュー"></select></div><div class="gbody" id="gbody"><p class="gna">読み込み中…</p></div></div></div>
+    <div class="gwrap" id="gwrap"><div class="gside" id="gside"><div class="grail" id="grail"><button type="button" class="ico bare gpin" data-gpin aria-label="メニューを固定" title="メニューを固定"></button></div><nav class="gnav" id="gnav" aria-label="ガイドのメニュー"></nav></div><div class="gmain"><div class="gsel"><select id="gsel" aria-label="ガイドのメニュー"></select></div><div class="gbody" id="gbody"><p class="gna">読み込み中…</p></div></div></div>
   </section>
   <div class="glb" id="glb" hidden role="dialog" aria-modal="true" aria-label="画像"><button type="button" class="ghost glb-x" id="glbX" aria-label="閉じる">✕</button><div class="glb-v"><img id="glbImg" alt="" draggable="false" title="クリックで拡大・縮小"></div><p class="glb-cap" id="glbCap"></p></div>
 
@@ -965,14 +979,25 @@ function gTab(n){return gTabs().filter(function(t){return t.name===n})[0]}
 function gMenu(){var used={},m=GMENU.map(function(g){return[g[0],g[1].filter(function(n){used[n]=1;return gTab(n)})]}),rest=gTabs().filter(function(t){return!used[t.name]}).map(function(t){return t.name});
   if(rest.length)m.push(["その他",rest]);return m.filter(function(g){return g[1].length})}
 function gLoad(){var a=getAuth();if(!a||gLoading)return;
-  if(!G){try{G=JSON.parse(ls(GKEY)||"null")}catch(e){G=null}if(G)gRender()}
+  if(!G){try{G=JSON.parse(ls(GKEY)||"null")}catch(e){G=null}if(G){gStamp();gRender()}}
   if(G&&DATA.guideVer&&G.ver===DATA.guideVer)return;
   gLoading=true;api({action:"guide",token:a.token,ver:G?G.ver:0}).then(function(r){gLoading=false;
     if(!r.ok){handleFail(r);if(!G)document.getElementById("gbody").innerHTML='<p class="gna">ガイドを読み込めませんでした。しばらくしてから「更新」を押してください。</p>';return}
     if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}
     if(r.same&&G){G.ver=r.ver}else{G={ver:r.ver,guide:r.guide}}
+    gStamp();
     try{localStorage.setItem(GKEY,JSON.stringify(G))}catch(e){}
     gRender()}).catch(function(){gLoading=false;if(!G)document.getElementById("gbody").innerHTML='<p class="gna">サーバーに接続できません。しばらくしてからもう一度お試しください。</p>'})}
+function gJ(k,v){if(v===undefined){try{return JSON.parse(ls(KEY+":"+k)||"null")||{}}catch(e){return{}}}ls(KEY+":"+k,JSON.stringify(v))}
+function gOpen(){return gJ("gopen")}
+function gHash(t){var s=JSON.stringify(t.rows),h=5381;for(var i=0;i<s.length;i++)h=(h*33+s.charCodeAt(i))|0;return String(h>>>0)}
+/* 更新表示：前回見た内容と違うページに赤い点（ページを開くと消える） */
+function gUpd(n){var seen=gJ("gseen"),t=gTab(n);if(!t||!Object.keys(seen).length)return false;return seen[n]!==t.h}
+function gSeen(n){var seen=gJ("gseen"),t=gTab(n);if(!t)return;if(!Object.keys(seen).length)gTabs().forEach(function(x){seen[x.name]=x.h});seen[n]=t.h;gJ("gseen",seen)}
+function gStamp(){gTabs().forEach(function(t){if(!t.h)t.h=gHash(t)});var seen=gJ("gseen");if(!Object.keys(seen).length){gTabs().forEach(function(t){seen[t.name]=t.h});gJ("gseen",seen)}}
+function gPinIcon(pinned){return'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9 4.5v15"/>'+(pinned?'<path d="M15.5 10l-2 2 2 2"/>':'<path d="M13.5 10l2 2-2 2"/>')+'</svg>'}
+function gPinned(){return ls(KEY+":gpin")!=="0"}
+function gSide(){var w=document.getElementById("gwrap");w.classList.toggle("col",!gPinned());if(gPinned())w.classList.remove("peek")}
 function gClear(){G=null;ls(GKEY,null);Object.keys(gImgs).forEach(function(k){if(gImgs[k].url)URL.revokeObjectURL(gImgs[k].url)});gImgs={}}
 /* シートの行 → ブロック（見出し・注記・段落・表・画像・ジャンプ） */
 function gBlocks(tab){var out=[],tbl=null,imgs=null,prev=0,title="";
@@ -1009,7 +1034,13 @@ function gTable(b){var bd={};b.rows.forEach(function(r){r.forEach(function(c){bd
 function gRender(){var nav=document.getElementById("gnav"),sel=document.getElementById("gsel"),body=document.getElementById("gbody");if(!nav)return;
   var menu=gMenu();if(!menu.length){body.innerHTML='<p class="gna">読み込み中…</p>';nav.innerHTML="";sel.innerHTML="";return}
   if(!gTab(gCur))gCur=menu[0][1][0];
-  nav.innerHTML=menu.map(function(g){return'<div><div class="gh">'+esc(g[0])+'</div><ul>'+g[1].map(function(n){return'<li><button type="button" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'">'+esc(gEmoji(n)+n)+'</button></li>'}).join("")+'</ul></div>'}).join("");
+  if(gUpd(gCur))gSeen(gCur);
+  var op=gOpen(),chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  nav.innerHTML='<div class="gtop"><button type="button" class="ico bare gpin" data-gpin aria-label="'+(gPinned()?"メニューを隠す":"メニューを固定")+'" title="'+(gPinned()?"メニューを隠す":"メニューを固定")+'">'+gPinIcon(gPinned())+'</button><span class="lbl">ガイド</span></div>'+menu.map(function(g){
+    var o=op[g[0]]||g[1].indexOf(gCur)>=0,up=g[1].some(gUpd);
+    return'<button type="button" class="gg'+(up&&!o?" rdot":"")+'" data-gg="'+esc(g[0])+'" aria-expanded="'+o+'">'+chev+esc(g[0])+(o?"":'<span class="ct">'+g[1].length+'</span>')+'</button>'+
+      (o?'<ul>'+g[1].map(function(n){return'<li><button type="button" class="gi'+(gUpd(n)?" rdot":"")+'" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'"'+(gUpd(n)?' title="更新があります"':"")+'>'+esc(gEmoji(n)+n)+'</button></li>'}).join("")+'</ul>':"")}).join("");
+  var rb=document.querySelector("#grail .gpin");rb.innerHTML=gPinIcon(false);rb.classList.toggle("rdot",gTabs().some(function(t){return gUpd(t.name)}));gSide();
   sel.innerHTML=menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gEmoji(n)+n)+'</option>'}).join("")+'</optgroup>'}).join("");
   var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h='<h2>'+gText({t:p.title})+'</h2>';
   var sel="all",cur=0;
@@ -1034,18 +1065,26 @@ function gShow(btn){var f=btn.dataset.img;gImg(f).then(function(url){btn.innerHT
 function gLazy(){var bs=document.querySelectorAll("#gbody [data-img]");if(!bs.length)return;
   if(!("IntersectionObserver" in window)){bs.forEach(gShow);return}
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io.unobserve(e.target);gShow(e.target)}})},{rootMargin:"300px"});bs.forEach(function(b){io.observe(b)})}
-function gGo(n,row){gCur=n;ls(GTKEY,n);
+function gGo(n,row){gCur=n;ls(GTKEY,n);document.getElementById("gwrap").classList.remove("peek");
   if(row){var sec=0;gBlocks(gTab(n)).blocks.forEach(function(b){if(b.k==="h"&&b.r<=row)sec=b.r});if(sec&&ls(KEY+":gsec:"+n)!=="all")ls(KEY+":gsec:"+n,String(sec))}
   gRender();var t=null;
   if(row){var ids=Array.prototype.map.call(document.querySelectorAll('#gbody [id^="gb-"]'),function(el){return+el.id.slice(3)}).filter(function(r){return r>=row}).sort(function(a,b){return a-b});if(ids.length)t=document.getElementById("gb-"+ids[0])}
   if(t)t.scrollIntoView({behavior:"smooth",block:"start"});else{var g=document.querySelector(".gwrap");if(g&&g.getBoundingClientRect().top<0)g.scrollIntoView({block:"start"})}}
 function gLightbox(btn){var img=btn.querySelector("img");if(!img)return;var lb=document.getElementById("glb");document.getElementById("glbImg").src=img.src;document.getElementById("glbImg").alt=btn.dataset.cap;document.getElementById("glbCap").textContent=btn.dataset.cap;lb.hidden=false;document.getElementById("glbX").focus();lb._from=btn}
 function gLightboxClose(){var lb=document.getElementById("glb");if(lb.hidden)return;lb.hidden=true;lb.classList.remove("zoom");document.getElementById("glbImg").removeAttribute("src");if(lb._from)lb._from.focus()}
-document.getElementById("view-guide").addEventListener("click",function(e){var gs=e.target.closest("[data-gsec]");if(gs){ls(KEY+":gsec:"+gCur,gs.dataset.gsec);gRender();var tc=document.getElementById("gtoc");if(tc&&tc.getBoundingClientRect().top<0)tc.scrollIntoView({block:"start"});var nb=document.querySelector('#gtoc [data-gsec="'+gs.dataset.gsec+'"]');if(nb)nb.focus();return}
+document.getElementById("view-guide").addEventListener("click",function(e){
+  if(e.target.closest("[data-gpin]")){ls(KEY+":gpin",gPinned()?"0":"1");document.getElementById("gwrap").classList.remove("peek");gRender();return}
+  var gg=e.target.closest("[data-gg]");if(gg){var op=gOpen(),k=gg.dataset.gg;op[k]=gg.getAttribute("aria-expanded")!=="true";gJ("gopen",op);gRender();var nb=document.querySelector('#gnav [data-gg="'+k+'"]');if(nb)nb.focus();return}
+  if(e.target.closest("#grail")&&!gPinned()){document.getElementById("gwrap").classList.toggle("peek");return}
+  var gs=e.target.closest("[data-gsec]");if(gs){ls(KEY+":gsec:"+gCur,gs.dataset.gsec);gRender();var tc=document.getElementById("gtoc");if(tc&&tc.getBoundingClientRect().top<0)tc.scrollIntoView({block:"start"});var nb=document.querySelector('#gtoc [data-gsec="'+gs.dataset.gsec+'"]');if(nb)nb.focus();return}
   var gj=e.target.closest("[data-gj]");if(gj){var m=gj.dataset.gj.split(":"),tab=gTabs().filter(function(t){return String(t.gid)===m[0]})[0];if(tab)gGo(tab.name,m[1]?+m[1]:0);return}
   var im=e.target.closest("[data-img]");if(im){gLightbox(im);return}
   var b=e.target.closest("[data-g]");if(b)gGo(b.dataset.g)});
 document.getElementById("gsel").addEventListener("change",function(){gGo(this.value)});
+(function(){var sd=document.getElementById("gside"),w=document.getElementById("gwrap");
+  sd.addEventListener("pointerenter",function(e){if(e.pointerType==="mouse"&&!gPinned())w.classList.add("peek")});
+  sd.addEventListener("pointerleave",function(e){if(e.pointerType==="mouse")w.classList.remove("peek")});
+  document.addEventListener("click",function(e){if(w.classList.contains("peek")&&document.contains(e.target)&&!e.target.closest("#gside"))w.classList.remove("peek")})})();
 document.getElementById("glb").addEventListener("click",function(e){if(e.target.id==="glbImg"){this.classList.toggle("zoom");return}gLightboxClose()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")gLightboxClose()});
 document.addEventListener("contextmenu",function(e){if(e.target.closest(".gimgs,.glb,#view-guide .gbody"))e.preventDefault()});
