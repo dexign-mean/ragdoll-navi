@@ -9,6 +9,8 @@
  *   IMAGE_FOLDER_ID  画像フォルダのID（必須）
  *   LOG_LAST_LOGIN   "false" にするとメンバー認証の「最終ログイン日」を記録しない（未設定なら記録する。1日1回）
  *   ADMIN_CODE       管理者コード（任意）。ニックネーム＋管理者コードでログインすると管理者メニューが使える
+ *   GUIDE_SHEET_ID   DB_ガイドのスプレッドシートID（ガイド.gs）
+ *   NOTIFY_EMAIL     通知メールの送り先（任意）
  *
  * 通信は text/plain の POST（JSON文字列）で受け取る。CORSの事前リクエストを避けるため。
  */
@@ -57,6 +59,7 @@ function doPost(e) {
       case 'ver':      res = actVer(req); break;
       case 'adm':      res = actAdmin(req); break;   // 管理者用（管理.gs）
       case 'apply':    res = actApply(req); break;   // 利用申請（管理.gs）
+      case 'guide':    res = actGuide(req); break;   // ガイド（ガイド.gs）
       default:         res = { ok: false, reason: 'bad_request' };
     }
   } catch (err) {
@@ -257,6 +260,7 @@ function buildData() {
       schedule: readSchedule(),
       legion: readLegion(),
       ver: dataVer(),
+      guideVer: guideVer(),
       updated: Utilities.formatDate(dataVer() ? new Date(dataVer()) : new Date(), TZ, 'yyyy-MM-dd HH:mm')
     };
   });
