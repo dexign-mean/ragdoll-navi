@@ -110,10 +110,10 @@ function applyImageCell(o) {
   if (m) { o.i = m[1]; o.t = m[2] || ''; }
 }
 
-/* 攻略の画像：表示用の画像（ファイル名_s、幅1600px・JPEG）がなければ作る。拡大表示は元画像。元画像の更新日時を版として返す */
+/* 「画像：」セルの画像（ガイド・攻略）：表示用の画像（ファイル名_s、幅1600px・JPEG）がなければ作る。拡大表示は元画像。元画像の更新日時を版として返す */
 function ensureThumbs(g) {
   var need = {}, ver = {};
-  g.tabs.forEach(function (t) { if (t.book !== 'raid') return; t.rows.forEach(function (r) { r.c.forEach(function (c) { if (c.i) need[c.i] = 1; }); }); });
+  g.tabs.forEach(function (t) { t.rows.forEach(function (r) { r.c.forEach(function (c) { if (c.i) need[c.i] = 1; }); }); });
   var names = Object.keys(need);
   if (!names.length) return ver;
   var folder = DriveApp.getFolderById(prop('IMAGE_FOLDER_ID')), token = ScriptApp.getOAuthToken();
@@ -201,7 +201,12 @@ function rgbHex(c) {
 
 function applyLink(o, link, imgMap) {
   var m1 = link.match(/^#gid=(\d+)(?:&range=[A-Z]+(\d+))?/), m2 = link.match(/\/d\/([\w-]{20,})/);
+  var m3 = link.match(/\/spreadsheets\/d\/([\w-]{20,})[^#]*#gid=(\d+)(?:&range=[A-Z]+(\d+))?/);   // 別のシート（ガイド⇔攻略）へのリンク
   if (m1) o.j = m1[1] + (m1[2] ? ':' + m1[2] : '');
+  else if (m3) {
+    var bk = m3[1] === prop('GUIDE_SHEET_ID') ? 'guide' : m3[1] === prop('RAID_SHEET_ID') ? 'raid' : '';
+    if (bk) o.j = bk + '/' + m3[2] + (m3[3] ? ':' + m3[3] : '');   // シートのURLは渡さない
+  }
   else if (m2 && /drive\.google\.com/.test(link)) { if (imgMap[m2[1]]) o.i = imgMap[m2[1]]; }   // 元画像のURLは渡さない
   else if (/^https:\/\//.test(link) && !/docs\.google\.com|drive\.google\.com/.test(link)) o.l = link;
 }

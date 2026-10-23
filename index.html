@@ -1041,7 +1041,7 @@ function tkStart(){clearInterval(tkTimer);if(tkItems.length<2)return;tkTimer=set
     else if(b.dataset.tkev){showTab("cal");setHl(b.dataset.tkev)}})})();
 /* ===== ガイド（DB_ガイドの内容をサーバー経由で表示） ===== */
 var GKEY=KEY+":guide",GTKEY=KEY+":gtab",G=null,gLoading=false,gImgs={},gCur=ls(GTKEY)||"ステータス";
-var GMENU=[["基本",["ステータス","戦闘メカニズム"]],["クラス",CLASSES.map(function(c){return c[2]})],["育成",["魂の刻印リスト","クラス別おすすめ魂の刻印","アルカナ","翼","種族理解度"]],["マップ",["天族採集マップ"]]];
+var GMENU=[["基本",["ステータス","戦闘メカニズム"]],["クラス",CLASSES.map(function(c){return c[2]})],["育成",["育成ロードマップ","魂の刻印リスト","クラス別おすすめ魂の刻印","アルカナ","翼","種族理解度"]],["マップ",["天族採集マップ"]]];
 function gEmoji(n){var c=CLASSES.filter(function(x){return x[2]===n})[0];return c?c[1]+" ":""}
 var gMode="guide",gCurM={};
 function gTKey(){return GTKEY+(gMode==="raid"?":raid":"")}
@@ -1163,7 +1163,7 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
     else if(b.k==="note")h+='<p class="gnote" id="gb-'+b.r+'">'+gText(b.c)+'</p>';
     else if(b.k==="para")h+='<p class="gpara" id="gb-'+b.r+'">'+gText(b.c)+'</p>';
     else if(b.k==="jump")h+='<div class="gjump" id="gb-'+b.r+'">'+(b.label?'<span class="gl">'+esc(b.label)+'</span>':"")+b.items.map(function(c){return'<button type="button" data-gj="'+esc(c.j)+'">'+esc(c.t)+'</button>'}).join("")+'</div>';
-    else if(b.k==="img")h+='<div class="gimgs'+(gMode==="raid"?" gwide":"")+'" id="gb-'+b.r+'">'+b.items.map(function(c){return'<figure><button type="button" data-img="'+esc(c.i)+'" data-cap="'+esc(c.t)+'" aria-label="'+esc(c.t||"画像")+'を拡大"><span>読み込み中…</span></button>'+(c.t?'<figcaption>'+esc(c.t)+'</figcaption>':'')+'</figure>'}).join("")+'</div>';
+    else if(b.k==="img")h+='<div class="gimgs'+(gMode==="raid"||b.items.every(function(c){return!/^map_/.test(c.i)})?" gwide":"")+'" id="gb-'+b.r+'">'+b.items.map(function(c){return'<figure><button type="button" data-img="'+esc(c.i)+'" data-cap="'+esc(c.t)+'" aria-label="'+esc(c.t||"画像")+'を拡大"><span>読み込み中…</span></button>'+(c.t?'<figcaption>'+esc(c.t)+'</figcaption>':'')+'</figure>'}).join("")+'</div>';
     else if(b.k==="tbl")h+=gTable(b)});
   if(ulOpen)h+="</ul>";
   if(!p.blocks.length)h+='<p class="gna">このコンテンツは準備中です。</p>';
@@ -1229,7 +1229,7 @@ document.getElementById("view-guide").addEventListener("click",function(e){
   if(e.target.closest("#grail")&&!gPinned()){document.getElementById("gwrap").classList.toggle("peek");return}
   var gs=e.target.closest("[data-gsec]");if(gs){ls(KEY+":gsec:"+gCur,gs.dataset.gsec);gRender();var hd=document.querySelector("#view-guide .ghead");if(hd&&hd.getBoundingClientRect().top<0)hd.scrollIntoView({block:"start"});var nb=document.querySelector('#gbar [data-gsec="'+gs.dataset.gsec+'"]');if(nb)nb.focus();return}
   var ga=e.target.closest("[data-garr]");if(ga){var ch=document.getElementById("gchips");ch.scrollBy({left:+ga.dataset.garr*Math.max(120,ch.clientWidth*.7),behavior:"smooth"});return}
-  var gj=e.target.closest("[data-gj]");if(gj){var m=gj.dataset.gj.split(":"),tab=gTabs().filter(function(t){return String(t.gid)===m[0]})[0];if(tab)gGo(tab.name,m[1]?+m[1]:0);return}
+  var gj=e.target.closest("[data-gj]");if(gj){var v=gj.dataset.gj,bk=v.indexOf("/")>0?v.split("/")[0]:null;if(bk)v=v.split("/")[1];if(bk&&bk!==gMode)showTab(bk);var m=v.split(":"),tab=gTabs().filter(function(t){return String(t.gid)===m[0]})[0];if(tab)gGo(tab.name,m[1]?+m[1]:0);return}
   var im=e.target.closest("[data-img]");if(im){gLightbox(im);return}
   var b=e.target.closest("[data-g]");if(b)gGo(b.dataset.g)});
 document.getElementById("gsel").addEventListener("change",function(){gGo(this.value)});
