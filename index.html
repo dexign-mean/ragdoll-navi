@@ -47,6 +47,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .adm h4{margin:6px 0 0;font-size:13px;color:var(--navy)}
 .adm .acard{border:1px solid var(--line);border-radius:8px;padding:10px;display:grid;gap:6px;background:var(--surface)}
 .adm .acard.warn{border-color:#E0B400;background:#FFF9E0}
+.afb{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:6px;margin-bottom:6px}.afb-h{font-size:12px;color:var(--muted)}.afb-t{margin:0;font-size:13.5px;line-height:1.7;overflow-wrap:anywhere}
 .adm .afield{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
 .adm .afield label{display:grid;gap:2px;font-size:11.5px;color:var(--muted)}
 .adm input[type=text],.adm input[type=date],.adm select,.adm textarea{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);font-size:13px}
@@ -345,6 +346,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .gsrc{margin:0;font-size:11.5px;color:var(--muted);line-height:1.6}
 .gsrcs .gsrc::before{content:"出典：";font-weight:700}
 .gnav .gab{padding-left:8px;margin-bottom:4px}
+.gnav .gsolo{padding-left:28px;font-weight:700;color:var(--ink)}
 .gna{color:var(--muted);font-size:13px;padding:30px 0;margin:0}
 .glb{position:fixed;inset:0;z-index:50;background:rgba(8,12,22,.88);display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:10px;gap:6px}
 .glb-v{min-height:0;overflow:auto;display:grid}
@@ -562,6 +564,8 @@ details[open]>summary::after{transform:rotate(180deg)}
         <p class="amsg note" id="admMsg" aria-live="polite"></p>
         <div id="admPending"></div>
         <details><summary>すべての候補</summary><div id="admAll"></div></details>
+        <h4>フィードバック</h4>
+        <div id="admFb"></div>
         <h4>設定</h4>
         <div id="admSet"></div>
         <h4>メンバー</h4>
@@ -1130,11 +1134,12 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
   var op=gOpen(),chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   var pn=document.getElementById("gpinNav"),pl=gPinned()?"メニューを隠す":"メニューを固定";pn.innerHTML=gPinIcon(gPinned());pn.title=pl;pn.setAttribute("aria-label",pl);
   document.getElementById("gmenu").innerHTML=(gMode==="guide"?'<button type="button" class="gi gab" data-g="__about" aria-current="'+(gCur==="__about")+'">ⓘ ガイドについて</button>':"")+menu.map(function(g){
+    if(gMode==="raid"&&g[1].length===1&&g[1][0]===g[0]){var n0=g[0];return'<button type="button" class="gi gsolo'+(gUpd(n0)?" rdot":"")+'" data-g="'+esc(n0)+'" aria-current="'+(n0===gCur)+'">'+esc(n0)+'</button>'}
     var o=op[g[0]]||g[1].indexOf(gCur)>=0,up=g[1].some(gUpd);
     return'<button type="button" class="gg'+(up&&!o?" rdot":"")+'" data-gg="'+esc(g[0])+'" aria-expanded="'+o+'">'+chev+esc(g[0])+(o?"":'<span class="ct">'+g[1].length+'</span>')+'</button>'+
-      (o?'<ul>'+g[1].map(function(n){return'<li><button type="button" class="gi'+(gUpd(n)?" rdot":"")+'" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'"'+(gUpd(n)?' title="更新があります"':"")+'>'+esc(gLabel(n))+'</button></li>'}).join("")+'</ul>':"")}).join("");
+      (o?'<ul>'+g[1].map(function(n){return'<li><button type="button" class="gi'+(gUpd(n)?" rdot":"")+'" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'"'+(gUpd(n)?' title="更新があります"':"")+'>'+esc(gMode==="raid"&&n===g[0]?"概要":gLabel(n))+'</button></li>'}).join("")+'</ul>':"")}).join("");
   var rb=document.querySelector("#grail .gpin");rb.innerHTML=gPinIcon(false);rb.classList.toggle("rdot",gTabs().some(function(t){return gUpd(t.name)}));gSide();
-  sel.innerHTML=(gMode==="guide"?'<option value="__about"'+(gCur==="__about"?" selected":"")+'>ⓘ ガイドについて</option>':"")+menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gLabel(n))+'</option>'}).join("")+'</optgroup>'}).join("");
+  sel.innerHTML=(gMode==="guide"?'<option value="__about"'+(gCur==="__about"?" selected":"")+'>ⓘ ガイドについて</option>':"")+menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gMode==="raid"&&n===g[0]&&g[1].length>1?"概要":gLabel(n))+'</option>'}).join("")+'</optgroup>'}).join("");
   if(gCur==="__about"){document.getElementById("gbar").classList.remove("searching");document.querySelectorAll("[data-garr]").forEach(function(b){b.hidden=true});body.innerHTML=gAbout();return}
   var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h="",cm=gCommon(),lead=gLead(p.blocks),srcs=[],hasCom=lead.some(function(b){return cm.set[b.c.t.trim()]});
   document.getElementById("gtitle").innerHTML=gText({t:p.title});document.getElementById("gbar").classList.remove("searching");
@@ -1422,11 +1427,14 @@ function admRender(){var d=ADM;document.getElementById("btnAdm").classList.toggl
     '<label>自動承認<select data-set="自動承認"><option'+(st["自動承認"]==="ON"?" selected":"")+'>ON</option><option'+(st["自動承認"]==="OFF"?" selected":"")+'>OFF</option></select></label>'+
     '<label>自動チェック<select data-set="自動チェック">'+["OFF","10分ごと","15分ごと","30分ごと","60分ごと"].map(function(x){return'<option'+(st["自動チェック"]===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></label>'+
     '<label>公開状態<select data-set="公開状態"><option'+(st["公開状態"]==="公開"?" selected":"")+'>公開</option><option'+(st["公開状態"]==="停止"?" selected":"")+'>停止</option></select></label></div>'+
-    '<p class="note" style="margin:4px 0 0">公式情報の最終チェック：'+esc((d.lastCheck||"-").replace(/^\d{4}-(\d{2})-(\d{2})/,"$1/$2"))+(d.checkFails?'（連続失敗 '+d.checkFails+'回）':'')+'</p>'+(d.feedback?'<p class="note" style="margin:2px 0 0">フィードバック：未対応 '+d.feedback+'件（シート「フィードバック」で確認）</p>':'')+
+    '<p class="note" style="margin:4px 0 0">公式情報の最終チェック：'+esc((d.lastCheck||"-").replace(/^\d{4}-(\d{2})-(\d{2})/,"$1/$2"))+(d.checkFails?'（連続失敗 '+d.checkFails+'回）':'')+'</p>'+
     '<label class="note" style="display:grid;gap:4px;margin-top:6px">お知らせ（空欄で非表示・200文字まで）<textarea id="admNotice" rows="2">'+esc(st["お知らせ"]||"")+'</textarea></label>'+
     '<div class="setrow" style="margin-top:6px"><button type="button" id="admNoticeSave">お知らせを保存</button></div>';
   var cnt={};d.members.forEach(function(m){cnt[m.status]=(cnt[m.status]||0)+1});document.getElementById("admMemCount").textContent="登録 "+d.members.length+"人（"+(cnt["申請中"]?"申請中 "+cnt["申請中"]+" / ":"")+"有効 "+(cnt["有効"]||0)+" / 停止 "+(cnt["停止"]||0)+" / 退会 "+(cnt["退会"]||0)+"）";
   document.getElementById("mfApply").textContent="申請中"+(cnt["申請中"]?" "+cnt["申請中"]:"");
+  var fl=d.feedbacks||[];document.getElementById("admFb").innerHTML=fl.length?'<p class="note">未対応 '+fl.filter(function(f){return!f.wait}).length+'件・確認中 '+fl.filter(function(f){return f.wait}).length+'件（新しい順）。「対応済み」「対応しない」にすると一覧から消え、シートには記録が残ります。</p>'+fl.map(function(f){
+    return'<div class="afb" data-row="'+f.row+'" data-at="'+esc(f.at)+'"><div class="afb-h num">'+esc(f.at)+' · '+esc(f.name||"匿名")+' · '+esc(f.type)+(f.page?' · '+esc(f.page):'')+(f.wait?' <span class="tag">確認中</span>':'')+'</div><p class="afb-t">'+esc(f.text).replace(/\n/g,"<br>")+'</p><textarea hidden>'+esc(f.text)+'</textarea>'+
+      '<div class="setrow"><button type="button" class="primary" data-act="fbok">対応済み</button><button type="button" data-act="fbno">対応しない</button>'+(f.wait?'':'<button type="button" class="ghost" data-act="fbwait">確認中</button>')+'</div></div>'}).join(""):'<p class="note">未対応のフィードバックはありません。</p>';
   admMemRender()}
 var admMF="",admMQ="";
 function admMemRender(){var d=ADM;if(!d)return;var ORD={"申請中":-1,"有効":0,"停止":1,"退会":2,"却下":3},nk=function(x){return x.normalize("NFKC").toLowerCase().replace(/[\u3041-\u3096]/g,function(c){return String.fromCharCode(c.charCodeAt(0)+96)})},q=nk(admMQ);
@@ -1443,6 +1451,7 @@ document.getElementById("admBox").addEventListener("click",function(e){var t=e.t
   if(t.id==="admNoticeSave"){admCall({op:"setting",key:"お知らせ",value:document.getElementById("admNotice").value},t);return}
   if(t.id==="admAdd"){var n=document.getElementById("admNewName");admCall({op:"member",sub:"add",name:n.value},t);n.value="";return}
   var act=t.dataset.act;
+  if(act==="fbok"||act==="fbno"||act==="fbwait"){var fc=t.closest(".afb");admCall({op:"fb",row:+fc.dataset.row,at:fc.dataset.at,text:fc.querySelector("textarea").value,status:{fbok:"対応済み",fbno:"対応しない",fbwait:"確認中"}[act]},t);return}
   if(act==="approve"||act==="save"||act==="exclude"){var c=t.closest(".acard"),data={};
     if(act==="exclude")data={state:"除外",approve:false};
     else{["name","start","end","startTime","endTime"].forEach(function(f){data[f]=admField(c,f)});data.state="確認済み";if(act==="approve")data.approve=true}

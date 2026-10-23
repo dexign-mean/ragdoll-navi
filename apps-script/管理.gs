@@ -23,8 +23,8 @@ function actAdmin(req) {
       try { var f = fetchCore(); r = { ok: true, message: fetchSummary(f) }; }
       catch (e) { r = { ok: false, reason: 'fetch', message: String(e.message || e) + '（シートは変更していません）' }; }
       break;
-    case 'cand': case 'setting': case 'member':
-      try { r = req.op === 'cand' ? admCand(req) : req.op === 'setting' ? admSetting(req) : admMember(req); }
+    case 'cand': case 'setting': case 'member': case 'fb':
+      try { r = req.op === 'cand' ? admCand(req) : req.op === 'setting' ? admSetting(req) : req.op === 'fb' ? admFeedback(req) : admMember(req); }
       catch (e) { r = { ok: false, message: String(e.message || e) }; }
       break;
     default:        return { ok: false, reason: 'bad_request' };
@@ -58,8 +58,8 @@ function admList() {
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;
   var applies = members.filter(function (m) { return m.status === '申請中'; }).length;
   var P = PropertiesService.getScriptProperties();
-  var fb = feedbackOpen();
-  return { cands: cands, settings: settings, members: members, pending: pending + applies + fb, applies: applies, feedback: fb,
+  var fbs = feedbackList(), fb = fbs.filter(function (f) { return !f.wait; }).length;
+  return { cands: cands, settings: settings, members: members, pending: pending + applies + fb, applies: applies, feedback: fb, feedbacks: fbs,
     lastCheck: P.getProperty('OF_LAST_CHECK') || '', checkFails: Number(P.getProperty('OF_FAILS')) || 0 };
 }
 
@@ -269,9 +269,23 @@ function feedbackSheet() {
   return sh;
 }
 
-/* 未対応の件数（対応状況が空） */
-function feedbackOpen() {
-  var sh = SpreadsheetApp.getActive().getSheetByName(SH.feedback);
-  if (!sh || sh.getLastRow() < 2) return 0;
-  return sh.getRange(2, 6, sh.getLastRow() - 1, 1).getDisplayValues().filter(function (r) { return !String(r[0]).trim(); }).length;
+/* 未対応（対応状況が空）と確認中のフィードバック。新しい順 */
+function feedbackList() {
+  var sh = SpreadsheetApp.getActive().getSheetByName(SH.feedback), out = [];
+  if (!sh || sh.getLastRow() < 2) return out;
+  sh.getRange(2, 1, sh.getLastRow() - 1, 6).getDisplayValues().forEach(function (r, i) {
+    var st = String(r[5]).trim();
+    if ((!st || st === '確認中') && String(r[4]).trim()) out.push({ row: i + 2, at: r[0], name: r[1], type: r[2], page: r[3], text: r[4], wait: st === '確認中' });
+  });
+  return out.reverse();
+}
+
+/* 管理者メニューから対応状況を記録（行の内容が一致する時だけ） */
+function admFeedback(req) {
+  var sh = SpreadsheetApp.getActive().getSheetByName(SH.feedback), row = Number(req.row), st = String(req.status || '');
+  if (!sh || !(row >= 2) || row > sh.getLastRow() || ['対応済み', '対応しない', '確認中'].indexOf(st) < 0) return { ok: false, message: '値が正しくありません。' };
+  var cur = sh.getRange(row, 1, 1, 6).getDisplayValues()[0];
+  if (cur[0] !== String(req.at || '') || cur[4] !== String(req.text || '')) return { ok: false, message: 'シートが変更されています。一覧を読み込み直してください。' };
+  sh.getRange(row, 6).setValue(st);
+  return { ok: true, message: '「' + st + '」にしました。' };
 }
