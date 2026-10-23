@@ -254,7 +254,7 @@ function actFeedback(req) {
   } finally { lock.releaseLock(); }
   cache.put(key, String(n + 1), 86400);
   notifyAdmin('[Ragdoll ナビ] フィードバック：' + type, (name || '匿名') + (page ? '（' + page + '）' : '') + '\n\n' + text +
-    '\n\nシート「フィードバック」の「対応状況」に「対応済み」と入れると、管理者メニューの件数から外れます。');
+    '\n\nツールの管理者メニュー（盾のアイコン）→「フィードバック」で確認・対応できます。\nhttps://ragdoll-navi.pages.dev/');
   return { ok: true, token: v.token, message: '送信しました。ご協力ありがとうございます。' };
 }
 
