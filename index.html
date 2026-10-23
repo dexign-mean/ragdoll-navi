@@ -1,4 +1,5 @@
 <title>Ragdoll ナビ</title>
+<script>/* テーマ（ライト/ダーク）を描画前に適用してちらつきを防ぐ */try{var t=localStorage.getItem("aion2-nikka-v1:theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
@@ -58,6 +59,7 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 #admMemFilter button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 .hbtn.badge{position:relative}.hbtn.badge::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#E5484D}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .adm .acard.warn{background:#3A3215}}
+:root[data-theme="dark"] .adm .acard.warn{background:#3A3215}
 .wdbox{display:grid;gap:8px;padding:12px;border:1px solid var(--warn);border-radius:8px}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px}
@@ -425,6 +427,10 @@ details[open]>summary::after{transform:rotate(180deg)}
 /* settings */
 .setrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .setrow label{display:inline-flex;gap:6px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:none;border-radius:0;padding:5px 12px;font-size:13px;background:var(--surface)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent);font-weight:700}
 .note{color:var(--muted);font-size:12px;margin:0}
 .backup textarea{width:100%;min-height:70px;font-family:var(--f-num);font-size:11.5px}
 .status{font-size:12px;color:var(--ok)}
@@ -564,6 +570,8 @@ details[open]>summary::after{transform:rotate(180deg)}
 
   <section class="view" id="view-set" hidden aria-label="設定">
     <div class="dbody">
+    <strong class="sh">表示</strong>
+    <div class="setrow"><span class="note">テーマ</span><div class="seg" id="themeSeg" role="radiogroup" aria-label="テーマ"><button type="button" role="radio" data-theme-set="auto">自動（端末に合わせる）</button><button type="button" role="radio" data-theme-set="light">ライト</button><button type="button" role="radio" data-theme-set="dark">ダーク</button></div></div>
     <strong class="sh">通知</strong>
     <div class="setrow">
       <button type="button" id="btnNotify">通知を許可</button>
@@ -1250,6 +1258,13 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&document.qu
   if(!e.target.matches||!e.target.matches("[data-gq]"))return;
   if(e.key==="Escape"){e.preventDefault();gQClear(true)}
   if(e.key==="Enter"){e.preventDefault();clearTimeout(gQT);gSearch(e.target.value);var f=document.querySelector("#gbody [data-gqr]");if(f)f.click()}});
+/* ===== テーマ ===== */
+var THKEY=KEY+":theme";
+function themeGet(){var t=ls(THKEY);return t==="light"||t==="dark"?t:"auto"}
+function themeApply(t){if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);
+  document.querySelectorAll("[data-theme-set]").forEach(function(b){b.setAttribute("aria-checked",String(b.dataset.themeSet===t))})}
+document.getElementById("themeSeg").addEventListener("click",function(e){var b=e.target.closest("[data-theme-set]");if(!b)return;var t=b.dataset.themeSet;ls(THKEY,t==="auto"?null:t);themeApply(t)});
+themeApply(themeGet());
 /* ===== 通知 ===== */
 function askNotify(){
   var note=document.getElementById("notifyNote");
