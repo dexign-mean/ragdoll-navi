@@ -87,7 +87,14 @@ input,select,textarea{background:var(--surface);border:1px solid var(--line);bor
 .tk-item .sw2{flex:none}
 .tk-item.warn .tag{background:var(--warn-soft);color:var(--warn)}
 .tk-nav{display:flex;align-items:center;gap:2px;flex:none}
-.tk-btn{padding:2px 8px}
+.tk-btn{padding:2px 6px;display:grid;place-items:center}
+.tk-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.tk-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.ticker{flex-wrap:wrap}
+.tk-list{flex-basis:100%;list-style:none;margin:2px 0 2px;padding:6px 0 0;border-top:1px dashed var(--line);display:grid;gap:1px;min-width:0}
+.tk-list li{min-width:0}
+.tk-head{font-size:12.5px;color:var(--muted);padding:4px 2px;display:block}
+.tk-list .tk-item .tt{white-space:normal}
 .tk-dots{display:flex;gap:4px}
 .tk-dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
 .tk-dots i.on{background:var(--accent)}
@@ -346,7 +353,8 @@ details[open]>summary::after{transform:rotate(180deg)}
   <div class="ticker" id="ticker" aria-roledescription="お知らせ" aria-live="off">
     <svg class="mega" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h3l7 4V6l-7 4z"/><path d="M17.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M7 14l1.5 5h2.5l-1.4-4.4"/></svg>
     <div class="tk-body" id="tkBody"></div>
-    <div class="tk-nav"><button type="button" class="ghost tk-btn" id="tkNext" aria-label="次のお知らせ" title="次のお知らせ">›</button></div>
+    <div class="tk-nav"><button type="button" class="ghost tk-btn" id="tkMore" aria-expanded="false" aria-controls="tkList" aria-label="すべて表示" title="すべて表示"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+    <ul class="tk-list" id="tkList" hidden></ul>
   </div>
 
 
@@ -858,21 +866,38 @@ function buildTicker(){
     out.push({tag:TAG.event,text:s.name+"　"+(s.start===s.end?md(s.start):md(s.start)+"〜"+md(s.end)),ev:s.id,url:s.url})});
   if(!out.length)out.push({tag:"",text:"-"});
   tkItems=out;if(tkIdx>=out.length)tkIdx=0;
+  /* 展開時：お知らせ → メンテナンス（最新の定期＋その後の臨時・緊急）→ 最新アップデート → 開催中イベント */
+  var all=[];if(nt)all.push(out[0]);
+  maintGroup().forEach(function(m){all.push({tag:TAG.maint,text:dd(m.start)+m.name+(m.done?" "+m.done+" 完了":(m.time?" "+m.time:"")),ev:m.id,url:m.url})});
+  out.forEach(function(x){if(x.tag===TAG.update||x.tag===TAG.event)all.push(x)});
+  tkAll=all;renderTkList();
 }
+function isTempMaint(s){return /臨時|緊急/.test(s.name||"")}
+function maintGroup(){var k=function(s){return s.posted||s.start},ms=DATA.schedule.filter(function(s){return s.type==="maint"}).sort(function(a,b){return k(a)<k(b)?1:k(a)>k(b)?-1:0});
+  var i=0,g=[];for(;i<ms.length;i++){g.push(ms[i]);if(!isTempMaint(ms[i]))break}
+  return g.reverse()}
+var tkAll=[],tkOpen=false;
+function tkRow(it){var c=it.ev?colorOf[it.ev]:0,inner=(c?'<i class="sw2 c'+c+'" aria-hidden="true"></i>':'')+(it.tag?'<span class="tag">'+esc(it.tag)+'</span>':'')+'<span class="tt">'+esc(it.text)+'</span>';
+  return it.url?'<a class="tk-item" href="'+esc(it.url)+'" target="_blank" rel="noopener">'+inner+lk()+'</a>':'<button type="button" class="tk-item'+(it.warn?" warn":"")+'"'+(it.ev?' data-tkev="'+it.ev+'"':'')+'>'+inner+'</button>'}
+function renderTkList(){var l=document.getElementById("tkList");if(!l)return;
+  document.getElementById("tkMore").hidden=tkAll.length<2;if(tkAll.length<2&&tkOpen)setTkOpen(false);
+  if(tkOpen)l.innerHTML=tkAll.map(function(it){return"<li>"+tkRow(it)+"</li>"}).join("")}
+function setTkOpen(v){tkOpen=v;var b=document.getElementById("tkMore"),l=document.getElementById("tkList");b.setAttribute("aria-expanded",String(v));b.title=v?"閉じる":"すべて表示";b.setAttribute("aria-label",b.title);
+  l.hidden=!v;if(v)renderTkList();renderTicker(false)}
 function renderTicker(anim){
-  var it=tkItems[tkIdx],body=document.getElementById("tkBody");if(!it){body.innerHTML="";return}
+  var it=tkItems[tkIdx],body=document.getElementById("tkBody");if(tkOpen){body.innerHTML='<span class="tk-head">すべてのお知らせ <span class="num">'+tkAll.length+'件</span></span>';return}if(!it){body.innerHTML="";return}
   var c=it.ev?colorOf[it.ev]:0,inner=(c?'<i class="sw2 c'+c+'" aria-hidden="true"></i>':'')+(it.tag?'<span class="tag">'+esc(it.tag)+'</span>':'')+'<span class="tt">'+esc(it.text)+'</span>';
   body.innerHTML=it.url?'<a class="tk-item'+(anim?" tk-fade":"")+'" href="'+esc(it.url)+'" target="_blank" rel="noopener">'+inner+lk()+'</a>':
     '<button type="button" class="tk-item'+(it.warn?" warn":"")+(anim?" tk-fade":"")+'"'+(it.ev?' data-tkev="'+it.ev+'"':'')+'>'+inner+'</button>';
-  document.getElementById("tkNext").hidden=tkItems.length<2;
 }
 function tkGo(d){if(!tkItems.length)return;tkIdx=(tkIdx+d+tkItems.length)%tkItems.length;renderTicker(!reduceMotion)}
-function tkStart(){clearInterval(tkTimer);if(tkItems.length<2)return;tkTimer=setInterval(function(){if(!tkHold&&!document.hidden)tkGo(1)},5000)}
+function tkStart(){clearInterval(tkTimer);if(tkItems.length<2)return;tkTimer=setInterval(function(){if(!tkHold&&!tkOpen&&!document.hidden)tkGo(1)},5000)}
 (function(){var tk=document.getElementById("ticker");
   tk.addEventListener("mouseenter",function(){tkHold=true});tk.addEventListener("mouseleave",function(){tkHold=false});
   tk.addEventListener("focusin",function(){tkHold=true});tk.addEventListener("focusout",function(){tkHold=false});
+  tk.addEventListener("keydown",function(e){if(e.key==="Escape"&&tkOpen){setTkOpen(false);document.getElementById("tkMore").focus()}});
   tk.addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
-    if(b.id==="tkNext"){tkGo(1);tkStart()}
+    if(b.id==="tkMore"){setTkOpen(!tkOpen)}
     else if(b.dataset.tkev){showTab("cal");setHl(b.dataset.tkev)}})})();
 /* ===== 通知 ===== */
 function askNotify(){
@@ -998,7 +1023,9 @@ function admRender(){var d=ADM;document.getElementById("btnAdm").classList.toggl
   var st=d.settings;
   document.getElementById("admSet").innerHTML='<div class="afield" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">'+
     '<label>自動承認<select data-set="自動承認"><option'+(st["自動承認"]==="ON"?" selected":"")+'>ON</option><option'+(st["自動承認"]==="OFF"?" selected":"")+'>OFF</option></select></label>'+
+    '<label>自動チェック<select data-set="自動チェック">'+["OFF","10分ごと","15分ごと","30分ごと","60分ごと"].map(function(x){return'<option'+(st["自動チェック"]===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select></label>'+
     '<label>公開状態<select data-set="公開状態"><option'+(st["公開状態"]==="公開"?" selected":"")+'>公開</option><option'+(st["公開状態"]==="停止"?" selected":"")+'>停止</option></select></label></div>'+
+    '<p class="note" style="margin:4px 0 0">公式情報の最終チェック：'+esc((d.lastCheck||"-").replace(/^\d{4}-(\d{2})-(\d{2})/,"$1/$2"))+(d.checkFails?'（連続失敗 '+d.checkFails+'回）':'')+'</p>'+
     '<label class="note" style="display:grid;gap:4px;margin-top:6px">お知らせ（空欄で非表示・200文字まで）<textarea id="admNotice" rows="2">'+esc(st["お知らせ"]||"")+'</textarea></label>'+
     '<div class="setrow" style="margin-top:6px"><button type="button" id="admNoticeSave">お知らせを保存</button></div>';
   var cnt={};d.members.forEach(function(m){cnt[m.status]=(cnt[m.status]||0)+1});document.getElementById("admMemCount").textContent="登録 "+d.members.length+"人（"+(cnt["申請中"]?"申請中 "+cnt["申請中"]+" / ":"")+"有効 "+(cnt["有効"]||0)+" / 停止 "+(cnt["停止"]||0)+" / 退会 "+(cnt["退会"]||0)+"）";

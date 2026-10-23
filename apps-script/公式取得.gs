@@ -5,8 +5,8 @@
  * - Steam 公式ニュースRSS（日本語）を1回読み、イベント・アップデート・メンテナンスの候補を「公式候補」タブに追加
  * - リンク先は公式サイトを優先（アップデート・メンテナンスは公式掲示板の記事、イベントは公式イベント一覧）
  * - 本文は日付・時刻を探すためだけに使い、シートには保存しない
- * - 候補は「承認」にチェックしたものだけがツールに表示される（自動承認はしない）
- * - 定期実行はしない。promotion.plaync.com（robots.txtで禁止）にはアクセスしない
+ * - 候補は「承認」にチェックしたものだけがツールに表示される（「設定」の自動承認ONなら、はっきりした候補は自動でチェック）
+ * - 「設定」の自動チェックで定期実行できる（管理.gs の autoCheck）。promotion.plaync.com（robots.txtで禁止）にはアクセスしない
  */
 
 var OF = {
@@ -44,12 +44,18 @@ function fetchSummary(r) {
 
 /* 取得の本体（メニュー・管理者画面の両方から使う）。失敗時は例外を投げ、シートは変更しない */
 function fetchCore() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) throw new Error('別の取得を実行中です。少し待ってからもう一度お試しください');
+  try { return fetchCoreLocked(); } finally { lock.releaseLock(); }
+}
+
+function fetchCoreLocked() {
   var sh = ensureOfficialSheet(), items = readSteamFeed();
   var boards = readOfficialBoards();   // 公式リンク探し用（失敗しても続行）
   var last = sh.getLastRow(), existing = {};
   if (last > 1) sh.getRange(2, 1, last - 1, 17).getDisplayValues().forEach(function (r, i) { if (r[11]) existing[r[11]] = { row: i + 2, detected: r[12], state: r[1], type: r[2], start: r[4], done: r[16] }; });
 
-  var now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), add = [], changed = 0, skipped = 0, done = 0, autoN = 0;
+  var now = Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), add = [], changed = 0, skipped = 0, done = 0, autoN = 0, review = [];
   var autoOn = String(readSettingsFresh()['自動承認'] || 'ON').toUpperCase() !== 'OFF';
   items.forEach(function (it) {
     var c = classify(it);
@@ -66,18 +72,21 @@ function fetchCore() {
         sh.getRange(ex.row, 14).setValue('検出内容が変わりました（前回：' + ex.detected + '）');
         sh.getRange(ex.row, 15).setValue(now);
         changed++;
+        review.push({ type: c.type, name: c.name, start: c.start, end: c.end, note: '期間変更あり', url: officialUrl(c, boards) });
       }
       return;
     }
     var auto = !!(autoOn && c.state === '新規' && (c.type === 'アップデート' || (c.type === 'メンテナンス' && c.startTime) || (c.type === 'イベント' && c.start && c.end)));
     if (auto) autoN++;
+    else review.push({ type: c.type, name: c.name, start: c.start, end: c.end, note: c.note || (c.state === '新規' ? '' : c.state), url: officialUrl(c, boards) });
     add.push([auto, c.state, c.type, c.name, c.start, c.end, c.startTime, c.endTime, officialUrl(c, boards),
       c.posted, 'Steam', c.id, c.detected, c.note, now, c.steamUrl, c.type === 'メンテナンス' ? doneTime(c.start, boards) : '']);
   });
   if (sh.getRange(1, 17).getValue() !== '完了時刻') sh.getRange(1, 17).setValue('完了時刻').setBackground('#1F3863').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   if (add.length) sh.getRange(sh.getLastRow() + 1, 1, add.length, 17).setValues(add);
   if (autoN || done) bumpData();
-  return { added: add.length, auto: autoN, changed: changed, done: done, skipped: skipped, autoOn: autoOn, boardsOk: boards.ok };
+  PropertiesService.getScriptProperties().setProperty('OF_LAST_CHECK', now);
+  return { review: review, added: add.length, auto: autoN, changed: changed, done: done, skipped: skipped, autoOn: autoOn, boardsOk: boards.ok };
 }
 
 /* 設定はキャッシュを使わずに直接読む（メニュー実行時の最新値） */
@@ -153,7 +162,7 @@ function classifyBody(it, o, baseY) {
   if (/メンテナンス/.test(it.title)) {
     var d2 = titleDate(it.title, baseY); if (!d2) return null;
     var t = it.text.match(RX_TIME);
-    o.type = 'メンテナンス'; o.name = (/臨時/.test(it.title) ? '臨時メンテナンス' : '定期メンテナンス') + (/延長/.test(it.title) ? '（延長）' : '');
+    o.type = 'メンテナンス'; o.name = (/緊急/.test(it.title) ? '緊急メンテナンス' : /臨時/.test(it.title) ? '臨時メンテナンス' : '定期メンテナンス') + (/延長/.test(it.title) ? '（延長）' : '');
     o.start = o.end = d2; o.md = mdKey(it.title);
     if (t) { o.startTime = pad2(t[1]) + ':' + t[2]; o.endTime = pad2(t[3]) + ':' + t[4]; }
     else o.note = '時刻を検出できませんでした';

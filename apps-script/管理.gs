@@ -8,7 +8,7 @@
  * op: list / fetch / cand / setting / member
  */
 
-var ADM_SETTINGS = { '自動承認': ['ON', 'OFF'], '公開状態': ['公開', '停止'], 'お知らせ': null };
+var ADM_SETTINGS = { '自動承認': ['ON', 'OFF'], '自動チェック': ['OFF', '10分ごと', '15分ごと', '30分ごと', '60分ごと'], '公開状態': ['公開', '停止'], 'お知らせ': null };
 var ADM_STATES = ['新規', '要確認', '期間変更あり', '確認済み', '除外'];
 var ADM_MEMBER = ['有効', '停止', '退会', '申請中', '却下'];
 
@@ -48,6 +48,7 @@ function admList() {
   Object.keys(ADM_SETTINGS).forEach(function (k) { settings[k] = st[k] || ''; });
   if (!settings['自動承認']) settings['自動承認'] = 'ON';
   if (!settings['公開状態']) settings['公開状態'] = '公開';
+  if (!settings['自動チェック']) settings['自動チェック'] = 'OFF';
   var ms = ss.getSheetByName(SH.members), members = [];
   if (ms && ms.getLastRow() > 1) {
     ms.getRange(2, 1, ms.getLastRow() - 1, 7).getDisplayValues().forEach(function (r, i) {
@@ -56,7 +57,9 @@ function admList() {
   }
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;
   var applies = members.filter(function (m) { return m.status === '申請中'; }).length;
-  return { cands: cands, settings: settings, members: members, pending: pending + applies, applies: applies };
+  var P = PropertiesService.getScriptProperties();
+  return { cands: cands, settings: settings, members: members, pending: pending + applies, applies: applies,
+    lastCheck: P.getProperty('OF_LAST_CHECK') || '', checkFails: Number(P.getProperty('OF_FAILS')) || 0 };
 }
 
 /* 候補の更新（行番号と記事IDの両方が一致する時だけ書き込む） */
@@ -88,9 +91,10 @@ function admSetting(req) {
   if (key === 'お知らせ' && val.length > 200) return { ok: false, message: 'お知らせは200文字以内にしてください。' };
   var sh = SpreadsheetApp.getActive().getSheetByName(SH.settings), last = sh.getLastRow(), row = 0;
   if (last > 1) sh.getRange(2, 1, last - 1, 1).getDisplayValues().forEach(function (r, i) { if (!row && r[0].trim() === key) row = i + 2; });
+  if (key === '自動チェック') { var t = setAutoCheck(val); if (!t.ok) return t; }
   if (row) sh.getRange(row, 2).setValue(val);
   else sh.getRange(last + 1, 1, 1, 2).setValues([[key, val]]);
-  bumpData();
+  if (key !== '自動チェック') bumpData();
   return { ok: true, message: '保存しました。' };
 }
 
@@ -158,9 +162,7 @@ function notifyApply(name) {
   try {
     var cache = CacheService.getScriptCache(), k = 'mail:' + hash(norm(name)).slice(0, 20);
     if (cache.get(k)) return;
-    var to = prop('NOTIFY_EMAIL') || Session.getEffectiveUser().getEmail();
-    if (!to) return;
-    MailApp.sendEmail(to, '[Ragdoll ナビ] 利用申請：' + name,
+    notifyAdmin('[Ragdoll ナビ] 利用申請：' + name,
       name + ' さんから利用申請がありました。\n\nツールの管理者メニュー（盾のアイコン）→「メンバー」で承認・却下できます。\nhttps://ragdoll-navi.pages.dev/');
     cache.put(k, '1', 21600);
   } catch (e) { console.error('notify failed', e); }
@@ -172,4 +174,59 @@ function findMemberFresh(key) { CacheService.getScriptCache().remove('members');
 function bumpData() {
   CacheService.getScriptCache().removeAll(['data', 'settings', 'members']);
   PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now()));
+}
+
+/* ========== 自動チェック（公式情報を定期的に取得） ========== */
+/* 設定「自動チェック」で間隔を選ぶと、時間主導トリガーを入れ替える。OFFでトリガーを削除 */
+
+function setAutoCheck(val) {
+  var n = { '10分ごと': 10, '15分ごと': 15, '30分ごと': 30, '60分ごと': 60 }[val] || 0;
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'autoCheck') ScriptApp.deleteTrigger(t); });
+    if (n) {
+      var b = ScriptApp.newTrigger('autoCheck').timeBased();
+      (n === 60 ? b.everyHours(1) : b.everyMinutes(n)).create();
+    }
+    PropertiesService.getScriptProperties().setProperty('OF_FAILS', '0');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: 'トリガーを設定できませんでした。スクリプトエディタで applyAutoCheck を一度実行して権限を許可してください。（' + String(e.message || e) + '）' };
+  }
+}
+
+/* エディタから1回実行：権限の許可＋「設定」の値に合わせてトリガーを設定 */
+function applyAutoCheck() {
+  var v = readSettingsFresh()['自動チェック'] || 'OFF', r = setAutoCheck(v);
+  console.log('自動チェック：' + v + ' → ' + (r.ok ? 'OK' : r.message));
+}
+
+/* トリガーから実行される本体 */
+function autoCheck() {
+  var P = PropertiesService.getScriptProperties();
+  try {
+    var r = fetchCore();
+    P.setProperty('OF_FAILS', '0');
+    if (r.review.length) notifyReview(r.review);
+  } catch (e) {
+    var f = (Number(P.getProperty('OF_FAILS')) || 0) + 1;
+    P.setProperty('OF_FAILS', String(f));
+    console.error('autoCheck failed', f, e);
+    if (f === 3) notifyAdmin('[Ragdoll ナビ] 公式情報の取得に失敗しています',
+      '自動チェックが3回続けて失敗しました。\n\n' + String(e.message || e) +
+      '\n\nSteamや公式サイトの一時的な不具合の場合は自然に戻ります。続く場合は管理者メニューの「公式情報を取得」で確認してください。\nhttps://ragdoll-navi.pages.dev/');
+  }
+}
+
+function notifyReview(list) {
+  notifyAdmin('[Ragdoll ナビ] 公式情報：確認が必要 ' + list.length + '件',
+    '確認が必要な公式情報の候補があります。\n\n' + list.map(function (c) {
+      return '・[' + c.type + '] ' + c.name + (c.start ? '（' + c.start + (c.end && c.end !== c.start ? '〜' + c.end : '') + '）' : '') + (c.note ? '\n　' + c.note : '') + (c.url ? '\n　' + c.url : '');
+    }).join('\n') + '\n\n管理者メニュー（盾のアイコン）の「公式情報」で確認してください。\nhttps://ragdoll-navi.pages.dev/');
+}
+
+function notifyAdmin(subject, body) {
+  try {
+    var to = prop('NOTIFY_EMAIL') || Session.getEffectiveUser().getEmail();
+    if (to) MailApp.sendEmail(to, subject, body);
+  } catch (e) { console.error('notify failed', e); }
 }
