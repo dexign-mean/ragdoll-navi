@@ -1106,7 +1106,7 @@ var gComC=null,gComV=null;
 function gLead(blocks){var out=[];for(var i=0;i<blocks.length;i++){if(blocks[i].k!=="note")break;out.push(blocks[i])}return out}
 function gIsSrc(t){return /^※\s*出典[：:]/.test(t)}
 function gCommon(){if(gComC&&gComV===(G&&G.ver)+gMode)return gComC;var cnt={},order=[],src=[];
-  gTabs().forEach(function(t){var bl=gBlocks(t).blocks,seen={};gLead(bl).forEach(function(b){var x=b.c.t.trim();if(gIsSrc(x)||seen[x])return;seen[x]=1;if(!cnt[x]){cnt[x]=0;order.push(x)}cnt[x]++});
+  gTabs().forEach(function(t){var bl=gBlocks(t).blocks,seen={};gLead(bl).forEach(function(b){var x=b.c.t.trim();if(gIsSrc(x)||/準備中/.test(x)||seen[x])return;seen[x]=1;if(!cnt[x]){cnt[x]=0;order.push(x)}cnt[x]++});
     var ss=bl.filter(function(b){return b.k==="note"&&gIsSrc(b.c.t)}).map(function(b){return b.c});if(ss.length)src.push({tab:t.name,items:ss})});
   gComC={set:{},list:[],src:src};order.forEach(function(x){if(cnt[x]>=2){gComC.set[x]=1;gComC.list.push(x)}});gComV=(G&&G.ver)+gMode;return gComC}
 function gSrcText(c){return{t:c.t.replace(/^※\s*出典[：:]\s*/,""),e:null,l:c.l}}
