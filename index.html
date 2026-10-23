@@ -321,7 +321,13 @@ details[open]>summary::after{transform:rotate(180deg)}
 .gimgs figcaption{font-size:12.5px;font-weight:700;color:var(--navy)}
 .gimgs button{padding:0;border-radius:8px;overflow:hidden;aspect-ratio:4/3;background:var(--sunk);display:grid;place-items:center;color:var(--muted);font-size:12px}
 .gimgs img,.glb img{display:block;width:100%;height:100%;object-fit:contain;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none}
-.gabout{border-top:1px dashed var(--line);padding-top:10px;margin-top:8px;display:grid;gap:2px}
+.gcom{display:grid;gap:4px}
+.gcom>button{justify-self:start;font-size:12px;padding:2px 8px;margin-left:-8px}
+.gcom-b{display:grid;gap:2px;padding:6px 10px;border-left:2px solid var(--line)}
+.gsrcs{border-top:1px dashed var(--line);padding-top:8px;margin-top:6px;display:grid;gap:2px}
+.gsrc{margin:0;font-size:11.5px;color:var(--muted);line-height:1.6}
+.gsrcs .gsrc::before{content:"出典：";font-weight:700}
+.gnav .gab{padding-left:8px;margin-bottom:4px}
 .gna{color:var(--muted);font-size:13px;padding:30px 0;margin:0}
 .glb{position:fixed;inset:0;z-index:50;background:rgba(8,12,22,.88);display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:10px;gap:6px}
 .glb-v{min-height:0;overflow:auto;display:grid}
@@ -1063,21 +1069,40 @@ function gTable(b){var bd={};b.rows.forEach(function(r){r.forEach(function(c){bd
       h+="<"+tag+(sp>1?' colspan="'+sp+'"':"")+(c.b&&tag==="td"?' class="gb"':"")+">"+gText(c)+"</"+tag+">";i=j}
     h+="</tr>"});
   return h+"</tbody></table></div>"}
+/* 共通の注意事項：ページ冒頭の※（最初の見出し・表より前）のうち、2ページ以上で同じ文のもの */
+var gComC=null,gComV=null;
+function gLead(blocks){var out=[];for(var i=0;i<blocks.length;i++){if(blocks[i].k!=="note")break;out.push(blocks[i])}return out}
+function gIsSrc(t){return /^※\s*出典[：:]/.test(t)}
+function gCommon(){if(gComC&&gComV===(G&&G.ver))return gComC;var cnt={},order=[],src=[];
+  gTabs().forEach(function(t){var bl=gBlocks(t).blocks,seen={};gLead(bl).forEach(function(b){var x=b.c.t.trim();if(gIsSrc(x)||seen[x])return;seen[x]=1;if(!cnt[x]){cnt[x]=0;order.push(x)}cnt[x]++});
+    var ss=bl.filter(function(b){return b.k==="note"&&gIsSrc(b.c.t)}).map(function(b){return b.c});if(ss.length)src.push({tab:t.name,items:ss})});
+  gComC={set:{},list:[],src:src};order.forEach(function(x){if(cnt[x]>=2){gComC.set[x]=1;gComC.list.push(x)}});gComV=G&&G.ver;return gComC}
+function gSrcText(c){return{t:c.t.replace(/^※\s*出典[：:]\s*/,""),e:null,l:c.l}}
+function gAbout(){var cm=gCommon(),intro=(G.guide.intro||[]),h="";
+  document.getElementById("gtitle").textContent="ガイドについて";document.getElementById("gchips").innerHTML="";document.getElementById("gall").hidden=true;
+  var sec=function(t){return'<h3>'+esc(t)+'</h3>'};
+  if(intro.length){h+=sec("このガイドについて")+intro.filter(function(r){return!/^\[(KR|Global)\]$/.test(r[0])}).map(function(r){return'<p class="gpara">'+gText({t:r.join("　")})+'</p>'}).join("")}
+  var lg=intro.filter(function(r){return/^\[(KR|Global)\]$/.test(r[0])});
+  if(lg.length)h+=sec("表記")+'<div class="gtbl"><table><tbody>'+lg.map(function(r){return'<tr><td class="gb">'+gText({t:r[0]})+'</td><td>'+esc(r.slice(1).join(" "))+'</td></tr>'}).join("")+'</tbody></table></div>';
+  if(cm.list.length)h+=sec("共通の注意事項")+cm.list.map(function(x){return'<p class="gnote">'+gText({t:x})+'</p>'}).join("");
+  if(cm.src.length)h+=sec("出典一覧")+cm.src.map(function(g){return'<h4>'+esc(gEmoji(g.tab)+g.tab)+'</h4>'+g.items.map(function(c){return'<p class="gsrc">'+gText(gSrcText(c))+'</p>'}).join("")}).join("");
+  return h}
 function gChipsUpd(){var c=document.getElementById("gchips");if(!c)return;var ov=c.scrollWidth>c.clientWidth+1,l=c.scrollLeft>1,r=c.scrollLeft+c.clientWidth<c.scrollWidth-1;
   document.querySelector('[data-garr="-1"]').hidden=!(ov&&l);document.querySelector('[data-garr="1"]').hidden=!(ov&&r);c.classList.toggle("fl",ov&&l);c.classList.toggle("fr",ov&&r)}
 function gRender(){var nav=document.getElementById("gnav"),sel=document.getElementById("gsel"),body=document.getElementById("gbody");if(!nav)return;
   var menu=gMenu();if(!menu.length){body.innerHTML='<p class="gna">読み込み中…</p>';document.getElementById("gtitle").textContent="";document.getElementById("gmenu").innerHTML="";sel.innerHTML="";return}
-  if(!gTab(gCur))gCur=menu[0][1][0];
+  if(gCur!=="__about"&&!gTab(gCur))gCur=menu[0][1][0];
   if(gUpd(gCur))gSeen(gCur);
   var op=gOpen(),chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   var pn=document.getElementById("gpinNav"),pl=gPinned()?"メニューを隠す":"メニューを固定";pn.innerHTML=gPinIcon(gPinned());pn.title=pl;pn.setAttribute("aria-label",pl);
-  document.getElementById("gmenu").innerHTML=menu.map(function(g){
+  document.getElementById("gmenu").innerHTML='<button type="button" class="gi gab" data-g="__about" aria-current="'+(gCur==="__about")+'">ⓘ ガイドについて</button>'+menu.map(function(g){
     var o=op[g[0]]||g[1].indexOf(gCur)>=0,up=g[1].some(gUpd);
     return'<button type="button" class="gg'+(up&&!o?" rdot":"")+'" data-gg="'+esc(g[0])+'" aria-expanded="'+o+'">'+chev+esc(g[0])+(o?"":'<span class="ct">'+g[1].length+'</span>')+'</button>'+
       (o?'<ul>'+g[1].map(function(n){return'<li><button type="button" class="gi'+(gUpd(n)?" rdot":"")+'" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'"'+(gUpd(n)?' title="更新があります"':"")+'>'+esc(gEmoji(n)+n)+'</button></li>'}).join("")+'</ul>':"")}).join("");
   var rb=document.querySelector("#grail .gpin");rb.innerHTML=gPinIcon(false);rb.classList.toggle("rdot",gTabs().some(function(t){return gUpd(t.name)}));gSide();
-  sel.innerHTML=menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gEmoji(n)+n)+'</option>'}).join("")+'</optgroup>'}).join("");
-  var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h="";
+  sel.innerHTML='<option value="__about"'+(gCur==="__about"?" selected":"")+'>ⓘ ガイドについて</option>'+menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gEmoji(n)+n)+'</option>'}).join("")+'</optgroup>'}).join("");
+  if(gCur==="__about"){document.getElementById("gbar").classList.remove("searching");document.querySelectorAll("[data-garr]").forEach(function(b){b.hidden=true});body.innerHTML=gAbout();return}
+  var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h="",cm=gCommon(),lead=gLead(p.blocks),srcs=[],hasCom=lead.some(function(b){return cm.set[b.c.t.trim()]});
   document.getElementById("gtitle").innerHTML=gText({t:p.title});document.getElementById("gbar").classList.remove("searching");
   var sel="all",cur=0,chips=document.getElementById("gchips"),all=document.getElementById("gall");
   if(hs.length>1){sel=ls(KEY+":gsec:"+gCur)||String(hs[0].r);if(sel!=="all"&&!hs.some(function(b){return String(b.r)===sel}))sel=String(hs[0].r);
@@ -1085,7 +1110,11 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
   else chips.innerHTML="";
   all.hidden=hs.length<2;all.setAttribute("aria-pressed",String(sel==="all"));
   setTimeout(function(){var on=chips.querySelector('[aria-pressed="true"]');if(on&&(on.offsetLeft<chips.scrollLeft||on.offsetLeft+on.offsetWidth>chips.scrollLeft+chips.clientWidth))chips.scrollLeft=on.offsetLeft-28;gChipsUpd()},0);
-  p.blocks.forEach(function(b){if(b.k==="h")cur=b.r;if(sel!=="all"&&cur&&String(cur)!==sel)return;
+  if(hasCom)h+='<div class="gcom"><button type="button" class="ghost" data-gcom aria-expanded="false">ⓘ 共通の注意事項</button><div class="gcom-b" hidden>'+cm.list.map(function(x){return'<p class="gnote">'+gText({t:x})+'</p>'}).join("")+'</div></div>';
+  p.blocks.forEach(function(b){
+    if(b.k==="note"){var nt=b.c.t.trim();if(gIsSrc(nt)){srcs.push(b.c);return}if(lead.indexOf(b)>=0&&cm.set[nt])return;
+      if(/🔍/.test(nt)&&tabHasImg(p)){h+='<p class="gnote" id="gb-'+b.r+'">※ 地図を押すと大きく表示されます。</p>';return}}
+    if(b.k==="h")cur=b.r;if(sel!=="all"&&cur&&String(cur)!==sel)return;
     if(b.k==="h")h+='<h3 id="gb-'+b.r+'">'+esc(b.t)+(b.tag?'<span class="gtg">'+gText({t:b.tag})+'</span>':"")+'</h3>';
     else if(b.k==="sub")h+='<h4 id="gb-'+b.r+'">'+esc(b.t)+'</h4>';
     else if(b.k==="note")h+='<p class="gnote" id="gb-'+b.r+'">'+gText(b.c)+'</p>';
@@ -1093,8 +1122,9 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
     else if(b.k==="jump")h+='<div class="gjump" id="gb-'+b.r+'">'+(b.label?'<span class="gl">'+esc(b.label)+'</span>':"")+b.items.map(function(c){return'<button type="button" data-gj="'+esc(c.j)+'">'+esc(c.t)+'</button>'}).join("")+'</div>';
     else if(b.k==="img")h+='<div class="gimgs" id="gb-'+b.r+'">'+b.items.map(function(c){return'<figure><button type="button" data-img="'+esc(c.i)+'" data-cap="'+esc(c.t)+'" aria-label="'+esc(c.t)+'の地図を拡大"><span>読み込み中…</span></button><figcaption>'+esc(c.t)+'</figcaption></figure>'}).join("")+'</div>';
     else if(b.k==="tbl")h+=gTable(b)});
-  var intro=(G.guide.intro||[]);if(intro.length)h+='<div class="gabout">'+intro.map(function(r){return'<p class="gnote">'+gText({t:r.join("　")})+'</p>'}).join("")+'</div>';
+  if(srcs.length)h+='<div class="gsrcs">'+srcs.map(function(c){return'<p class="gsrc">'+gText(gSrcText(c))+'</p>'}).join("")+'</div>';
   body.innerHTML=h;gLazy()}
+function tabHasImg(p){return p.blocks.some(function(b){return b.k==="img"})}
 /* 画像：サーバー経由で取得（公開URLなし）。表示中だけ保持し、ログアウト・ロックで破棄 */
 function gImg(file){if(gImgs[file])return gImgs[file].p;var a=getAuth();
   var p=api({action:"image",token:a?a.token:"",file:file}).then(function(r){if(!r.ok)throw r;var url=gB64url(r.base64,r.mime);gImgs[file].url=url;return url});
@@ -1120,6 +1150,7 @@ function gGo(n,row,flash){gQClear();gCur=n;ls(GTKEY,n);document.getElementById("
 function gLightbox(btn){var img=btn.querySelector("img");if(!img)return;var lb=document.getElementById("glb"),li=document.getElementById("glbImg");li.src=img.src;gImg(btn.dataset.img).then(function(u){if(!lb.hidden)li.src=u},function(){});document.getElementById("glbImg").alt=btn.dataset.cap;document.getElementById("glbCap").textContent=btn.dataset.cap;lb.hidden=false;document.getElementById("glbX").focus();lb._from=btn}
 function gLightboxClose(){var lb=document.getElementById("glb");if(lb.hidden)return;lb.hidden=true;lb.classList.remove("zoom");document.getElementById("glbImg").removeAttribute("src");if(lb._from)lb._from.focus()}
 document.getElementById("view-guide").addEventListener("click",function(e){
+  var gc=e.target.closest("[data-gcom]");if(gc){var op=gc.getAttribute("aria-expanded")!=="true";gc.setAttribute("aria-expanded",String(op));gc.nextElementSibling.hidden=!op;return}
   var qr=e.target.closest("[data-gqr]");if(qr){gGo(qr.dataset.gqr,+qr.dataset.r,true);return}
   var qm=e.target.closest("[data-gqm]");if(qm){gQOpen[qm.dataset.gqm]=1;gSearch(document.querySelector("[data-gq]").value);return}
   if(e.target.closest("[data-gqx]")){gQClear(true);return}
