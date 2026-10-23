@@ -921,7 +921,9 @@ function dispName(s){return s.name+(s.time?" "+s.time:"")}
 var schedSig="";
 function sigOf(a){var t=nowMs();return a.map(function(s){return s.id+(started(s,t)?"+":"-")}).join(",")}
 setInterval(function(){var a=aliveSched(),g=sigOf(a);if(g!==schedSig){schedSig=g;DATA.schedule=a;assignColors();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay()}},60e3);
-function applyData(d){if(!d)return;DATA.items=d.items||[];DATA.timers=d.timers||[];DATA.schedRaw=d.schedule||[];DATA.schedule=aliveSched();DATA.legion=d.legion||[];DATA.settings=d.settings||{};
+var dataAt="",hdrTimer=0;
+function showDataTime(){var el=document.getElementById("hdrStatus");if(!el)return;var m=/^\d{4}-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(dataAt||"");el.classList.remove("err");el.textContent=m?"データ："+m[1]+"/"+m[2]+" "+m[3]:""}
+function applyData(d){if(!d)return;dataAt=d.updated||dataAt;DATA.items=d.items||[];DATA.timers=d.timers||[];DATA.schedRaw=d.schedule||[];DATA.schedule=aliveSched();DATA.legion=d.legion||[];DATA.settings=d.settings||{};
   assignColors();document.getElementById("timers").innerHTML="";applyResets();renderChars();renderChecks();buildTicker();renderTicker(false);tkStart();renderCal();renderLists();renderDay();renderPrio();renderTimers()}
 function showGate(mode,msg){document.getElementById("gate").hidden=false;document.getElementById("wrapMain").hidden=true;
   var f=document.getElementById("loginForm"),m=document.getElementById("gateMsg");f.hidden=mode!=="login";m.hidden=mode==="login";
@@ -929,7 +931,7 @@ function showGate(mode,msg){document.getElementById("gate").hidden=false;documen
     document.getElementById("lgSave").checked=ls(NKEY)!==null||ls(NKEY+"-off")===null;setTimeout(function(){(document.getElementById("lgName").value?document.getElementById("lgCode"):document.getElementById("lgName")).focus()},0)}
   else{document.getElementById("gateText").textContent=msg||"";document.getElementById("gateBack").hidden=mode!=="info"}}
 function showApp(){document.getElementById("gate").hidden=true;document.getElementById("wrapMain").hidden=false;var a=getAuth();document.getElementById("acctName").textContent=a?"ログイン中："+a.name+(a.admin?"（管理者）":""):"";admInit()}
-function clearCache(){ls(CKEY,null);applyData({items:[],timers:[],schedule:[],legion:[],settings:{}})}
+function clearCache(){ls(CKEY,null);dataAt="";applyData({items:[],timers:[],schedule:[],legion:[],settings:{}})}
 function handleFail(r){var why=r&&r.reason;
   if(why==="expired"){setAuth(null);showGate("login",r.message);return}
   if(why==="blocked"||why==="closed"||why==="withdrawn"){setAuth(null);clearCache();showGate(why==="withdrawn"?"info":"msg",r.message||"");return}
@@ -939,7 +941,7 @@ function fetchData(manual){var a=getAuth();if(!a||fetching)return;fetching=true;
   api({action:"data",token:a.token}).then(function(r){fetching=false;
     if(!r.ok){handleFail(r);return}
     if(r.token||a.admin!==!!r.admin){if(r.token)a.token=r.token;a.admin=!!r.admin;setAuth(a,!!ls(AKEY));admInit()}
-    ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));applyData(r.data);setDot(false);setStatus(manual?"最新バージョン（"+r.data.updated+"）":"",false,"hdrStatus")
+    ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));applyData(r.data);setDot(false);clearTimeout(hdrTimer);if(manual){setStatus("最新バージョンに更新しました",false,"hdrStatus");hdrTimer=setTimeout(showDataTime,5000)}else showDataTime()
   }).catch(function(){fetching=false;setStatus("サーバーに接続できません（前回のデータで表示中）",true,"hdrStatus")})}
 document.getElementById("lgEye").innerHTML=svg("eye",true);
 document.getElementById("lgEye").addEventListener("click",function(){var i=document.getElementById("lgCode"),show=i.type==="password";i.type=show?"text":"password";
@@ -960,7 +962,7 @@ document.getElementById("loginForm").addEventListener("submit",function(e){e.pre
     if(!r.ok){if(r.reason==="closed"||r.reason==="blocked"){showGate("msg",r.message);return}err.textContent=r.message||"ログインできませんでした。";return}
     var auto=document.getElementById("lgAuto").checked;setAuth({token:r.token,name:r.name,admin:!!r.admin},auto);
     if(document.getElementById("lgSave").checked){ls(NKEY,n);ls(NKEY+"-off",null)}else{ls(NKEY,null);ls(NKEY+"-off","1")}
-    document.getElementById("lgCode").value="";ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));showApp();applyData(r.data)
+    document.getElementById("lgCode").value="";ls(CKEY,JSON.stringify({at:Date.now(),data:r.data}));showApp();applyData(r.data);showDataTime()
   }).catch(function(){b.disabled=false;b.textContent="ログイン";err.textContent="サーバーに接続できません。しばらくしてからもう一度お試しください。"})});
 function logout(){setAuth(null);clearCache();showGate("login")}
 function withdraw(){var a=getAuth();if(!a)return;var wipe=document.getElementById("wdWipe").checked,b=document.getElementById("wdYes");b.disabled=true;
@@ -1035,7 +1037,7 @@ document.getElementById("admBox").addEventListener("change",function(e){var s=e.
   if(s.dataset.set==="公開状態"&&s.value==="停止"&&!admConfirm.pub){admConfirm.pub=1;admMsg("公開を停止すると、管理者以外はツールを使えなくなります。もう一度「停止」を選ぶと確定します。",true);s.value="公開";return}
   delete admConfirm.pub;admCall({op:"setting",key:s.dataset.set,value:s.value})});
 function boot(){var a=getAuth();if(!a){showGate("login");return}
-  showApp();var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}if(c&&c.data)applyData(c.data);fetchData(false)}
+  showApp();var c=null;try{c=JSON.parse(ls(CKEY)||"null")}catch(e){}if(c&&c.data){applyData(c.data);showDataTime()}fetchData(false)}
 /* 新しいデータがあるかだけを確認して「更新」に赤い点（反映は更新ボタンで） */
 var lastVerCheck=0;
 function setDot(on){var b=document.getElementById("btnRefresh");b.classList.toggle("rdot",on);b.title=on?"新しい情報があります。押すと反映します":"最新のデータを読み込む"}
