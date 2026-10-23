@@ -23,7 +23,8 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .wrap{max-width:1280px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
 .num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 [hidden]{display:none!important}
-.gate{min-height:100vh;display:grid;place-items:center;padding:24px 16px;background:var(--bg)}
+.foot{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;padding:6px 0 18px;font-size:11px;color:var(--muted);text-align:center}
+.gate{min-height:100vh;display:grid;place-items:center;align-content:center;gap:14px;padding:24px 16px;background:var(--bg)}
 .gcard{width:100%;max-width:360px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:28px 24px;display:grid;gap:14px}
 .gcard h1{margin:0;font-size:20px;color:var(--navy)}
 .gcard h1 small{display:block;font-size:11px;letter-spacing:.08em;color:var(--muted);font-weight:500;margin-top:4px}
@@ -314,6 +315,7 @@ details[open]>summary::after{transform:rotate(180deg)}
     <button type="submit" class="primary" id="lgBtn">ログイン</button>
   </form>
   <div class="gcard" id="gateMsg" hidden><h1>Ragdoll ナビ<small>AION2 GLOBAL · ASIA</small></h1><p class="gmsg" id="gateText"></p><button type="button" class="ghost" id="gateBack" hidden>ログイン画面へ</button></div>
+  <footer class="foot gfoot"><span>非公式ファンツール（Ragdoll レギオン）</span><span>AION2 © NC Corporation. All Rights Reserved.</span></footer>
 </div>
 <div class="wrap" id="wrapMain"><div class="app" id="app">
   <header class="top">
@@ -469,6 +471,7 @@ details[open]>summary::after{transform:rotate(180deg)}
       </div>
     </div>
   </section>
+  <footer class="foot"><span>非公式ファンツール（Ragdoll レギオン）</span><span>AION2 © NC Corporation. All Rights Reserved.</span></footer>
 </div></div>
 
 <script>
