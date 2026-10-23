@@ -1061,7 +1061,8 @@ function gImg(file){if(gImgs[file])return gImgs[file].p;var a=getAuth();
   var p=api({action:"image",token:a?a.token:"",file:file}).then(function(r){if(!r.ok)throw r;var bin=atob(r.base64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
     var url=URL.createObjectURL(new Blob([u],{type:r.mime}));gImgs[file].url=url;return url});
   gImgs[file]={p:p};p.catch(function(){delete gImgs[file]});return p}
-function gShow(btn){var f=btn.dataset.img;gImg(f).then(function(url){btn.innerHTML='<img src="'+url+'" alt="'+esc(btn.dataset.cap)+'" draggable="false">'},function(r){btn.innerHTML="<span>表示できませんでした</span>";if(r&&r.reason)handleFail(r)})}
+function gSmall(f){return f.replace(/(\.[a-z]+)$/i,"_s$1")}
+function gShow(btn){var f=btn.dataset.img;gImg(gSmall(f)).catch(function(){return gImg(f)}).then(function(url){btn.innerHTML='<img src="'+url+'" alt="'+esc(btn.dataset.cap)+'" draggable="false">'},function(r){btn.innerHTML="<span>表示できませんでした</span>";if(r&&r.reason)handleFail(r)})}
 function gLazy(){var bs=document.querySelectorAll("#gbody [data-img]");if(!bs.length)return;
   if(!("IntersectionObserver" in window)){bs.forEach(gShow);return}
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io.unobserve(e.target);gShow(e.target)}})},{rootMargin:"300px"});bs.forEach(function(b){io.observe(b)})}
@@ -1070,7 +1071,7 @@ function gGo(n,row){gCur=n;ls(GTKEY,n);document.getElementById("gwrap").classLis
   gRender();var t=null;
   if(row){var ids=Array.prototype.map.call(document.querySelectorAll('#gbody [id^="gb-"]'),function(el){return+el.id.slice(3)}).filter(function(r){return r>=row}).sort(function(a,b){return a-b});if(ids.length)t=document.getElementById("gb-"+ids[0])}
   if(t)t.scrollIntoView({behavior:"smooth",block:"start"});else{var g=document.querySelector(".gwrap");if(g&&g.getBoundingClientRect().top<0)g.scrollIntoView({block:"start"})}}
-function gLightbox(btn){var img=btn.querySelector("img");if(!img)return;var lb=document.getElementById("glb");document.getElementById("glbImg").src=img.src;document.getElementById("glbImg").alt=btn.dataset.cap;document.getElementById("glbCap").textContent=btn.dataset.cap;lb.hidden=false;document.getElementById("glbX").focus();lb._from=btn}
+function gLightbox(btn){var img=btn.querySelector("img");if(!img)return;var lb=document.getElementById("glb"),li=document.getElementById("glbImg");li.src=img.src;gImg(btn.dataset.img).then(function(u){if(!lb.hidden)li.src=u},function(){});document.getElementById("glbImg").alt=btn.dataset.cap;document.getElementById("glbCap").textContent=btn.dataset.cap;lb.hidden=false;document.getElementById("glbX").focus();lb._from=btn}
 function gLightboxClose(){var lb=document.getElementById("glb");if(lb.hidden)return;lb.hidden=true;lb.classList.remove("zoom");document.getElementById("glbImg").removeAttribute("src");if(lb._from)lb._from.focus()}
 document.getElementById("view-guide").addEventListener("click",function(e){
   if(e.target.closest("[data-gpin]")){ls(KEY+":gpin",gPinned()?"0":"1");document.getElementById("gwrap").classList.remove("peek");gRender();return}

@@ -164,6 +164,11 @@ function setupGuide() {
   onGuideChange();
 }
 
+/* 同じ地図の古い画像（png/jpg・一覧用）をゴミ箱へ */
+function cleanMapFiles(folder, base) {
+  ['.png', '.jpg', '_s.png', '_s.jpg'].forEach(function (x) { var it = folder.getFilesByName(base + x); while (it.hasNext()) it.next().setTrashed(true); });
+}
+
 /* 採集マップの元画像（7MB前後）から表示用の縮小版を作り、非公開の画像フォルダに保存する */
 function prepareMapImages() {
   var ss = SpreadsheetApp.openById(prop('GUIDE_SHEET_ID')), sh = ss.getSheetByName('天族採集マップ');
@@ -179,13 +184,20 @@ function prepareMapImages() {
         var meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + id + '?fields=name,thumbnailLink',
           { headers: { Authorization: 'Bearer ' + token } }).getContentText());
         if (!meta.thumbnailLink) throw new Error('縮小画像を作れませんでした');
-        var blob = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+$/, '') + '=s2000', { headers: { Authorization: 'Bearer ' + token } }).getBlob();
-        var ext = /png/.test(blob.getContentType()) ? '.png' : '.jpg';
-        var name = 'map_' + String(meta.name).replace(/\.[^.]+$/, '') + ext;
-        var old = folder.getFilesByName(name); while (old.hasNext()) old.next().setTrashed(true);
-        folder.createFile(blob.setName(name));
+        var base = 'map_' + String(meta.name).replace(/\.[^.]+$/, ''), link = meta.thumbnailLink.replace(/=s\d+.*$/, ''), name = base + '.jpg';
+        cleanMapFiles(folder, base);
+        [['', 2000], ['_s', 640]].forEach(function (v) {   // 拡大表示用（2000px）と一覧用（640px）。JPEGで受け取る
+          var opt = { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true },
+              res = UrlFetchApp.fetch(link + '=s' + v[1] + '-rj', opt);
+          if (res.getResponseCode() !== 200) res = UrlFetchApp.fetch(link + '=s' + v[1], opt);   // JPEG指定が使えない場合
+          if (res.getResponseCode() !== 200) throw new Error('HTTP ' + res.getResponseCode());
+          var blob = res.getBlob();
+          var f = base + v[0] + (/png/.test(blob.getContentType()) ? '.png' : '.jpg');
+          folder.createFile(blob.setName(f));
+          if (!v[0]) name = f;
+          console.log('作成：' + f + '（' + Math.round(blob.getBytes().length / 1024) + 'KB）');
+        });
         map[id] = name; n++;
-        console.log('作成：' + name + '（' + Math.round(blob.getBytes().length / 1024) + 'KB）');
       } catch (e) { console.error('画像を作れませんでした：' + id, e); }
     });
   });
