@@ -51,7 +51,7 @@ function admList() {
   var ms = ss.getSheetByName(SH.members), members = [];
   if (ms && ms.getLastRow() > 1) {
     ms.getRange(2, 1, ms.getLastRow() - 1, 7).getDisplayValues().forEach(function (r, i) {
-      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], memo: r[4], joined: r[5], applied: r[6] });
+      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], last: r[3], memo: r[4], joined: r[5], applied: r[6] });
     });
   }
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;

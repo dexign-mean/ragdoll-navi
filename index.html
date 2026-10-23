@@ -36,6 +36,9 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 .gcard .primary{padding:10px;font-size:14px}
 .gerr{color:var(--warn);font-size:12.5px;min-height:1em;margin:0}
 .gerr.ok{color:var(--ok)}
+.gapply{display:grid;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--bg)}
+.gapply .setrow{display:flex;gap:8px;flex-wrap:wrap}.gapply .primary{flex:1}
+.gnote{margin:0;font-size:11px;line-height:1.6;color:var(--muted)}
 .gmsg{font-size:14px;line-height:1.7;margin:0}
 .acct{display:grid;gap:8px;border-top:1px dashed var(--line);padding-top:12px}
 .adm{display:grid;gap:12px}
@@ -217,7 +220,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .faq details[open] summary{border-bottom:1px dashed var(--line)}
 .faq .a{padding:8px 0 10px;font-size:13px;line-height:1.7;display:grid;gap:4px}
 .faq .a p{margin:0}
-.howto{border:1px dashed var(--line);border-radius:8px;padding:14px 12px;color:var(--muted);font-size:13px}
+.steps{margin:0;padding-left:1.4em;display:grid;gap:6px;font-size:13px;line-height:1.7}.steps b{color:var(--navy)}
 .view>.dbody{padding-top:16px}
 .soon{padding:24px 20px;display:grid;gap:6px}
 .soon strong{color:var(--navy)}
@@ -314,7 +317,8 @@ details[open]>summary::after{transform:rotate(180deg)}
     <div class="gopt"><label><input type="checkbox" id="lgAuto" checked>自動ログイン</label><label><input type="checkbox" id="lgSave" checked>ニックネームを保存</label></div>
     <p class="gerr" id="lgErr" aria-live="polite"></p>
     <button type="submit" class="primary" id="lgBtn">ログイン</button>
-    <button type="button" id="lgApply" hidden>利用申請を送る</button>
+    <div class="gapply" id="lgApplyBox" hidden><p class="gmsg">「<b id="lgApplyName"></b>」で利用申請を送りますか？</p><div class="setrow"><button type="button" class="primary" id="lgApply">利用申請を送る</button><button type="button" class="ghost" id="lgApplyBack">戻る</button></div></div>
+    <p class="gnote">ニックネームと利用日（登録・申請・最終ログイン）のみ管理者のシートに記録します。メールアドレスやIPアドレスなどの個人情報は収集しません。キャラ・チェックなどのデータは、お使いのブラウザ内にだけ保存されます。</p>
   </form>
   <div class="gcard" id="gateMsg" hidden><h1>Ragdoll ナビ<small>AION2 GLOBAL · ASIA</small></h1><p class="gmsg" id="gateText"></p><button type="button" class="ghost" id="gateBack" hidden>ログイン画面へ</button></div>
   <footer class="foot gfoot"><span>非公式ファンツール（Ragdoll レギオン）</span><span>AION2 © NC Corporation. All Rights Reserved.</span></footer>
@@ -400,9 +404,15 @@ details[open]>summary::after{transform:rotate(180deg)}
   <section class="view" id="view-help" hidden aria-label="使い方・よくある質問">
     <div class="dbody">
     <strong class="sh">使い方</strong>
-    <div class="howto">準備中です。キャラ追加・チェック・通知・カレンダー・バックアップの使い方をここにまとめる予定です。</div>
+    <ol class="steps">
+      <li><b>キャラを追加</b>：「通知・日課」の「＋」からキャラを追加します。</li>
+      <li><b>日課・週課をチェック</b>：終わった項目にチェック。使わない項目は目のアイコンで非表示にできます。</li>
+      <li><b>通知・音を設定</b>：右上の「設定」で「通知を許可」を押します。音は定時イベントのスピーカーアイコンから選べます。</li>
+      <li><b>予定を確認</b>：お知らせ・メンテナンス・イベントは上の帯とカレンダーで確認できます。リンクアイコンから公式ページを開けます。</li>
+      <li><b>時々バックアップ</b>：「設定」の「バックアップ」でコードを作成しておくと、別のPCやブラウザにも移せます。</li>
+    </ol>
     <strong class="sh">よくある質問</strong>
-    <div class="faq"><details><summary>ログインできません</summary><div class="a"><p>ニックネームは本キャラの名前を入力してください。認証コードはレギオンで案内されたものです。</p><p>5回続けて失敗すると10分間ログインできません。それでも入れない場合は管理者に連絡してください。</p></div></details><details><summary>通知が来ません</summary><div class="a"><p>このページを開いている間だけ通知が届きます。タブを閉じると届きません（別のタブやアプリを見ている間は届きます）。</p><p>「設定」の「通知を許可」を押して、ブラウザの通知を許可してください。</p><p>Chromeの「メモリセーバー」が有効だと、しばらく見ていないタブが止まることがあります。このページを除外リストに追加してください。</p></div></details><details><summary>音が鳴りません</summary><div class="a"><p>ページを開いた後、一度どこかをクリックしてください。ブラウザの仕様で、クリックするまで音が鳴らないことがあります。</p><p>スピーカーの音量が0（ミュート）になっていないか確認してください。</p></div></details><details><summary>時間が重なったらどうなりますか？</summary><div class="a"><p>音は「設定」の「音の優先順位」で上にあるイベントの1つだけが鳴ります。</p><p>通知は1つにまとめて表示されます（例：シューゴフェスタ・時空の亀裂の時間です）。</p></div></details><details><summary>データはどこに保存されますか？</summary><div class="a"><p>キャラ・チェック・メモ・設定は、使っているブラウザの中にだけ保存されます。ほかの人に見られたり、共有されたりすることはありません。</p><p>ブラウザの履歴やサイトデータを削除すると消えるので、時々バックアップしておくと安心です。</p></div></details><details><summary>別のPCやブラウザに移したい</summary><div class="a"><p>「設定」の「バックアップ」で「コードを作成」→「コピー」し、移す先で貼り付けて「読み込む」を押してください。</p><p>アップロードした通知音はバックアップに含まれないので、移す先でもう一度アップロードしてください。</p></div></details><details><summary>自分の通知音の条件は？</summary><div class="a"><p>5秒・500KB以下の音声ファイル（mp3 / wav / ogg）を推奨します。500KBを超えるファイルは登録できません。</p><p>登録できるのは1つです。スピーカーの通知音から「自分の通知音」を選ぶと使えます。</p></div></details><details><summary>時間の基準は？</summary><div class="a"><p>サーバー時間（日本時間と同じ UTC+9）で表示しています。</p><p>日課は毎日16:00、週課は毎週水曜16:00に自動でリセットされます。</p></div></details><details><summary>「サーバー共通」とは？</summary><div class="a"><p>同じサーバーのキャラ全員で回数を共有する項目です。1キャラが済ませると、ほかのキャラでは受けられません。</p><p>そのため、キャラごとではなく1つのチェックにまとめています。</p></div></details></div>
+    <div class="faq"><details><summary>はじめて使うには？</summary><div class="a"><p>本キャラのニックネームと、レギオンで案内された認証コードを入力して「ログイン」を押してください。</p><p>まだ登録されていない場合は「利用申請を送る」が表示されます。送信後、管理者が承認するとログインできるようになります。</p></div></details><details><summary>ログインできません</summary><div class="a"><p>ニックネームは本キャラの名前を入力してください。認証コードはレギオンで案内されたものです。</p><p>「確認中です」と表示される場合は、管理者の承認をお待ちください。</p><p>5回続けて失敗すると10分間ログインできません。それでも入れない場合は管理者に連絡してください。</p></div></details><details><summary>自動ログインとは？</summary><div class="a"><p>ログインした状態を最大30日間保持します。共有のPCではオフにしてください。</p><p>ログアウトは「設定」の「アカウント」からできます。</p></div></details><details><summary>通知が来ません</summary><div class="a"><p>このページを開いている間だけ通知が届きます。タブを閉じると届きません（別のタブやアプリを見ている間は届きます）。</p><p>「設定」の「通知を許可」を押して、ブラウザの通知を許可してください。</p><p>Chromeの「メモリセーバー」が有効だと、しばらく見ていないタブが止まることがあります。このページを除外リストに追加してください。</p></div></details><details><summary>音が鳴りません</summary><div class="a"><p>ページを開いた後、一度どこかをクリックしてください。ブラウザの仕様で、クリックするまで音が鳴らないことがあります。</p><p>スピーカーの音量が0（ミュート）になっていないか確認してください。</p></div></details><details><summary>時間が重なったらどうなりますか？</summary><div class="a"><p>音は「設定」の「音の優先順位」で上にあるイベントの1つだけが鳴ります。</p><p>通知は1つにまとめて表示されます（例：シューゴフェスタ・時空の亀裂の時間です）。</p></div></details><details><summary>データはどこに保存されますか？</summary><div class="a"><p>キャラ・チェック・メモ・設定は、使っているブラウザの中にだけ保存されます。ほかの人に見られたり、共有されたりすることはありません。</p><p>管理者のシートに記録されるのは、ニックネームと利用日（登録・申請・最終ログイン）だけです。メールアドレスやIPアドレスなどの個人情報は収集しません。</p><p>ブラウザの履歴やサイトデータを削除すると消えるので、時々バックアップしておくと安心です。</p></div></details><details><summary>別のPCやブラウザに移したい</summary><div class="a"><p>「設定」の「バックアップ」で「コードを作成」→「コピー」し、移す先で貼り付けて「読み込む」を押してください。</p><p>アップロードした通知音はバックアップに含まれないので、移す先でもう一度アップロードしてください。</p></div></details><details><summary>自分の通知音の条件は？</summary><div class="a"><p>5秒・500KB以下の音声ファイル（mp3 / wav / ogg）を推奨します。500KBを超えるファイルは登録できません。</p><p>登録できるのは1つです。スピーカーの通知音から「自分の通知音」を選ぶと使えます。</p></div></details><details><summary>時間の基準は？</summary><div class="a"><p>サーバー時間（日本時間と同じ UTC+9）で表示しています。</p><p>日課は毎日16:00、週課は毎週水曜16:00に自動でリセットされます。</p></div></details><details><summary>「サーバー共通」とは？</summary><div class="a"><p>同じサーバーのキャラ全員で回数を共有する項目です。1キャラが済ませると、ほかのキャラでは受けられません。</p><p>そのため、キャラごとではなく1つのチェックにまとめています。</p></div></details><details><summary>お知らせ・メンテ・イベントの情報は？</summary><div class="a"><p>公式のお知らせをもとに自動で表示しています。変更があった場合、反映まで少し時間がかかることがあります。</p><p>正確な情報は、リンクアイコンから公式ページでご確認ください。</p></div></details><details><summary>「更新」の赤い点は？</summary><div class="a"><p>新しい情報があるときの目印です。「更新」を押すと最新の内容になります。</p></div></details><details><summary>退会するとどうなりますか？</summary><div class="a"><p>このツールにログインできなくなります。退会時に選ばなければ、ブラウザ内のデータはそのまま残ります。</p><p>また使いたい場合は、管理者に連絡するか、もう一度利用申請を送ってください。</p></div></details></div>
     </div>
   </section>
 
@@ -935,15 +945,18 @@ document.getElementById("lgEye").innerHTML=svg("eye",true);
 document.getElementById("lgEye").addEventListener("click",function(){var i=document.getElementById("lgCode"),show=i.type==="password";i.type=show?"text":"password";
   this.innerHTML=svg("eye",!show);this.setAttribute("aria-pressed",String(show));this.setAttribute("aria-label",show?"認証コードを隠す":"認証コードを表示");this.title=this.getAttribute("aria-label")});
 document.getElementById("gateBack").addEventListener("click",function(){showGate("login")});
+function applyBox(name){var box=document.getElementById("lgApplyBox");box.hidden=!name;document.getElementById("lgBtn").hidden=!!name;if(name)document.getElementById("lgApplyName").textContent=name}
+document.getElementById("lgApplyBack").addEventListener("click",function(){applyBox(null);document.getElementById("lgErr").textContent=""});
+["lgName","lgCode"].forEach(function(id){document.getElementById(id).addEventListener("input",function(){if(!document.getElementById("lgApplyBox").hidden){applyBox(null);document.getElementById("lgErr").textContent=""}})});
 document.getElementById("lgApply").addEventListener("click",function(){var b=this,err=document.getElementById("lgErr"),n=document.getElementById("lgName").value.trim(),c=document.getElementById("lgCode").value;
-  b.disabled=true;api({action:"apply",name:n,code:c}).then(function(r){b.disabled=false;err.textContent=r.message||"";err.classList.toggle("ok",!!r.ok);if(r.ok)b.hidden=true})
+  b.disabled=true;api({action:"apply",name:n,code:c}).then(function(r){b.disabled=false;err.textContent=r.message||"";err.classList.toggle("ok",!!r.ok);if(r.ok)applyBox(null)})
   .catch(function(){b.disabled=false;err.textContent="サーバーに接続できません。しばらくしてからもう一度お試しください。"})});
 document.getElementById("loginForm").addEventListener("submit",function(e){e.preventDefault();
   var n=document.getElementById("lgName").value.trim(),c=document.getElementById("lgCode").value,err=document.getElementById("lgErr"),b=document.getElementById("lgBtn");
   if(!n||!c){err.textContent="ニックネームと認証コードを入力してください。";return}
   b.disabled=true;b.textContent="確認中…";err.textContent="";
   api({action:"login",name:n,code:c}).then(function(r){b.disabled=false;b.textContent="ログイン";
-    document.getElementById("lgApply").hidden=!(r.reason==="unregistered"&&r.canApply);err.classList.toggle("ok",r.reason==="pending");
+    applyBox(r.reason==="unregistered"&&r.canApply?n:null);err.classList.toggle("ok",r.reason==="pending");
     if(!r.ok){if(r.reason==="closed"||r.reason==="blocked"){showGate("msg",r.message);return}err.textContent=r.message||"ログインできませんでした。";return}
     var auto=document.getElementById("lgAuto").checked;setAuth({token:r.token,name:r.name,admin:!!r.admin},auto);
     if(document.getElementById("lgSave").checked){ls(NKEY,n);ls(NKEY+"-off",null)}else{ls(NKEY,null);ls(NKEY+"-off","1")}
@@ -994,8 +1007,8 @@ function admMemRender(){var d=ADM;if(!d)return;var ORD={"申請中":-1,"有効":
   var list=d.members.filter(function(m){return(!admMF||m.status===admMF)&&(!q||nk(m.name).indexOf(q)>=0)})
     .sort(function(a,b){var x=(ORD[a.status]==null?3:ORD[a.status])-(ORD[b.status]==null?3:ORD[b.status]);if(x)return x;var ja=a.joined||"",jb=b.joined||"";return ja<jb?-1:ja>jb?1:a.row-b.row});
   document.querySelectorAll("#admMemFilter [data-mf]").forEach(function(b){b.setAttribute("aria-pressed",String(b.dataset.mf===admMF))});
-  document.getElementById("admMem").innerHTML=list.length?'<table><thead><tr><th>ニックネーム</th><th>登録日</th><th>状態</th><th></th></tr></thead><tbody>'+list.map(function(m){
-    return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td class="num">'+esc(m.status==="申請中"?"申請 "+(m.applied||"-"):(m.joined||"-"))+'</td><td>'+(m.status==="申請中"?'<button type="button" class="primary" data-act="mok">承認</button> <button type="button" class="ghost" data-act="mng">却下</button>':'<select data-mst>'+["有効","停止","退会","却下"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select>')+'</td><td>'+(m.status==="申請中"?'':'<button type="button" data-act="mem">変更</button>')+'</td></tr>'}).join("")+'</tbody></table>':'<p class="note">'+(d.members.length?'該当するメンバーがいません。':'メンバーがいません。')+'</p>';
+  document.getElementById("admMem").innerHTML=list.length?'<table><thead><tr><th>ニックネーム</th><th>登録日</th><th>最終ログイン</th><th>状態</th><th></th></tr></thead><tbody>'+list.map(function(m){
+    return'<tr data-mrow="'+m.row+'" data-mname="'+esc(m.name)+'"><td>'+esc(m.name)+(m.quit?' <span class="note">（退会 '+esc(m.quit)+'）</span>':'')+'</td><td class="num">'+esc(m.status==="申請中"?"申請 "+(m.applied||"-"):(m.joined||"-"))+'</td><td class="num">'+esc(m.last||"-")+'</td><td>'+(m.status==="申請中"?'<button type="button" class="primary" data-act="mok">承認</button> <button type="button" class="ghost" data-act="mng">却下</button>':'<select data-mst>'+["有効","停止","退会","却下"].map(function(x){return'<option'+(m.status===x?" selected":"")+'>'+x+'</option>'}).join("")+'</select>')+'</td><td>'+(m.status==="申請中"?'':'<button type="button" data-act="mem">変更</button>')+'</td></tr>'}).join("")+'</tbody></table>':'<p class="note">'+(d.members.length?'該当するメンバーがいません。':'メンバーがいません。')+'</p>';
 }
 function admField(card,f){var el=card.querySelector('[data-f="'+f+'"]');return el?el.value.trim():""}
 document.getElementById("admBox").addEventListener("click",function(e){var t=e.target.closest("button,input[type=checkbox]");if(!t)return;

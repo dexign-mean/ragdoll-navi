@@ -7,7 +7,7 @@
  *   AUTH_CODE        認証コード（必須）
  *   TOKEN_SECRET     トークン署名用の鍵（setup() を一度実行すると自動で作成）
  *   IMAGE_FOLDER_ID  画像フォルダのID（必須）
- *   LOG_LAST_LOGIN   "true" にするとメンバー認証の「最終ログイン日」を記録（任意）
+ *   LOG_LAST_LOGIN   "false" にするとメンバー認証の「最終ログイン日」を記録しない（未設定なら記録する。1日1回）
  *   ADMIN_CODE       管理者コード（任意）。ニックネーム＋管理者コードでログインすると管理者メニューが使える
  *
  * 通信は text/plain の POST（JSON文字列）で受け取る。CORSの事前リクエストを避けるため。
@@ -114,7 +114,7 @@ function actLogin(req) {
     return { ok: false, reason: 'wrong', message: MSG.wrong };
   }
 
-  if (prop('LOG_LAST_LOGIN') === 'true') writeMemberCell(m.row, 4, today());
+  touchLogin(m);
   var res = { ok: true, token: issueToken(m.name, adminOk), name: m.name, data: buildData() };
   if (adminOk) res.admin = true;
   return res;
@@ -168,6 +168,7 @@ function checkSession(token) {
   if (!admin && !isPublic()) return closedRes();
   var m = findMember(norm(t.n));
   if (!m || (!admin && m.status !== '有効')) return { ok: false, reason: 'blocked', message: MSG.blocked };
+  touchLogin(m);
   var fresh = (Date.now() - t.iat > REFRESH_AFTER_DAYS * 864e5) ? issueToken(m.name, admin) : null;
   return { ok: true, name: m.name, token: fresh, admin: admin };
 }
@@ -215,12 +216,20 @@ function findMember(key) {
     var sh = SpreadsheetApp.getActive().getSheetByName(SH.members);
     var n = sh.getLastRow() - 1;
     if (n < 1) return [];
-    return sh.getRange(2, 1, n, 2).getDisplayValues().map(function (r, i) {
-      return { name: r[0].trim(), status: r[1].trim(), row: i + 2 };
+    return sh.getRange(2, 1, n, 4).getDisplayValues().map(function (r, i) {
+      return { name: r[0].trim(), status: r[1].trim(), last: r[3].trim(), row: i + 2 };
     }).filter(function (r) { return r.name; });
   });
   for (var i = 0; i < list.length; i++) if (norm(list[i].name) === key) return list[i];
   return null;
+}
+
+/* 最終ログイン日（自動ログインでも1日1回記録） */
+function touchLogin(m) {
+  if (prop('LOG_LAST_LOGIN') === 'false') return;
+  var d = today();
+  if (m.last === d) return;
+  try { writeMemberCell(m.row, 4, d); CacheService.getScriptCache().remove('members'); } catch (e) { console.error('touchLogin', e); }
 }
 
 function writeMemberCell(row, col, value) {
