@@ -249,7 +249,6 @@ details[open]>summary::after{transform:rotate(180deg)}
 .gq:focus-within{border-color:var(--accent);outline:2px solid var(--accent-soft)}
 .gq svg{width:15px;height:15px;flex:none;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}
 .gq input{border:none;background:transparent;padding:6px 0;width:100%;min-width:0;font-size:13px;outline:none}
-.gsel .gq{margin-bottom:8px}
 .gsr{display:grid;gap:8px}
 .gsr-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .gsr-h h2 .num{font-size:13px;color:var(--muted);font-weight:400}
@@ -275,19 +274,31 @@ details[open]>summary::after{transform:rotate(180deg)}
 .gsel{display:none;padding:12px 14px;border-bottom:1px solid var(--line)}
 .gsel select{width:100%;padding:8px;font-size:14px}
 .gmain{min-width:0}
-#gtoc{position:sticky;top:0;z-index:3;background:var(--surface);padding:8px 0;margin:-8px 0 0;border-bottom:1px solid var(--line)}
+.ghead{padding:18px 22px 4px}
+.ghead h2{margin:0;font-size:19px;color:var(--navy);overflow-wrap:anywhere}
+.ghead h2 .num{font-size:13px;color:var(--muted);font-weight:400}
+.gbar{position:sticky;top:0;z-index:3;background:var(--surface);display:flex;align-items:center;gap:6px;padding:8px 22px;border-bottom:1px solid var(--line)}
+.gchips{position:relative;flex:1;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
+.gchips::-webkit-scrollbar{display:none}
+.gchips.fr{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.gchips.fl{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px);mask-image:linear-gradient(90deg,transparent,#000 28px)}
+.gchips.fl.fr{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
+.gchips button,.gall{flex:none;white-space:nowrap;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--sunk);border:1px solid transparent;color:var(--ink)}
+.gchips button:hover,.gall:hover{border-color:var(--accent);color:var(--accent)}
+.gchips button[aria-pressed="true"],.gall[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
+.gar{flex:none;width:26px;height:26px}.gar svg{width:16px;height:16px}
+.gbar .gq{flex:0 0 180px;margin-left:auto;transition:flex-basis .15s}
+.gbar .gq:focus-within{flex-basis:260px}
+.gbar.searching .gchips,.gbar.searching .gar,.gbar.searching .gall{display:none}
+#view-guide .ghead{-webkit-user-select:none;user-select:none}
 #view-guide .gbody{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-.gbody{padding:18px 22px 28px;min-width:0;display:grid;align-content:start;gap:12px}
+.gbody{padding:12px 22px 28px;min-width:0;display:grid;align-content:start;gap:12px}
 .gbody h2{margin:0;font-size:19px;color:var(--navy)}
 .gbody h3{margin:10px 0 0;font-size:15px;color:var(--navy);display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-left:3px solid var(--accent);padding-left:8px;scroll-margin-top:12px}
 .gbody h4{margin:6px 0 0;font-size:14px;color:var(--navy);scroll-margin-top:12px}
 .gbody [id^="gb-"]{scroll-margin-top:12px}
 .gtag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--muted);background:var(--sunk);padding:0 7px;border-radius:99px;line-height:1.7;margin:0 1px;white-space:nowrap}
 .gtg{font-size:11.5px;font-weight:400;color:var(--muted)}
-.gtoc{display:flex;flex-wrap:wrap;gap:6px}
-.gtoc button{font-size:12px;padding:3px 10px;border-radius:99px;background:var(--sunk);border:1px solid transparent;color:var(--ink)}
-.gtoc button:hover{border-color:var(--accent);color:var(--accent)}
-.gtoc button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:700}
 
 .gnote{margin:0;font-size:12px;color:var(--muted);line-height:1.7}
 .gpara{margin:0;font-size:13px;line-height:1.75}
@@ -318,7 +329,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 .glb.zoom img{width:auto;height:auto;max-width:none;cursor:zoom-out;margin:auto}
 .glb-x{justify-self:end;color:#fff;font-size:18px}
 .glb-cap{margin:0;color:#fff;text-align:center;font-size:13px}
-@container (max-width:640px){.gwrap,.gwrap.col{grid-template-columns:1fr}.gside{display:none}.gsel{display:block}.gbody{padding:14px}}
+@container (max-width:640px){.gwrap,.gwrap.col{grid-template-columns:1fr}.gside{display:none}.gsel{display:block}.gbody{padding:12px 14px 14px}.ghead{padding:14px 14px 4px}.gbar{flex-wrap:wrap;padding:8px 14px}.gbar .gq,.gbar .gq:focus-within{order:-1;flex:1 1 100%;margin:0}}
 .soon{padding:24px 20px;display:grid;gap:6px}
 .soon strong{color:var(--navy)}
 .homebtn{all:unset;cursor:pointer;color:inherit}
@@ -492,7 +503,7 @@ details[open]>summary::after{transform:rotate(180deg)}
   </section>
 
   <section class="view" id="view-guide" hidden aria-label="ガイド">
-    <div class="gwrap" id="gwrap"><div class="gside" id="gside"><div class="grail" id="grail"><button type="button" class="ico bare gpin" data-gpin aria-label="メニューを固定" title="メニューを固定"></button></div><nav class="gnav" id="gnav" aria-label="ガイドのメニュー"><div class="gtop"><button type="button" class="ico bare gpin" data-gpin id="gpinNav"></button><label class="gq"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input type="search" data-gq placeholder="ガイドを検索" aria-label="ガイドを検索" autocomplete="off" enterkeyhint="search"></label></div><div id="gmenu"></div></nav></div><div class="gmain"><div class="gsel"><label class="gq"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input type="search" data-gq placeholder="ガイドを検索" aria-label="ガイドを検索" autocomplete="off" enterkeyhint="search"></label><select id="gsel" aria-label="ガイドのメニュー"></select></div><div class="gbody" id="gbody"><p class="gna">読み込み中…</p></div></div></div>
+    <div class="gwrap" id="gwrap"><div class="gside" id="gside"><div class="grail" id="grail"><button type="button" class="ico bare gpin" data-gpin aria-label="メニューを固定" title="メニューを固定"></button></div><nav class="gnav" id="gnav" aria-label="ガイドのメニュー"><div class="gtop"><button type="button" class="ico bare gpin" data-gpin id="gpinNav"></button><span class="lbl">ガイド</span></div><div id="gmenu"></div></nav></div><div class="gmain"><div class="gsel"><select id="gsel" aria-label="ガイドのメニュー"></select></div><div class="ghead"><h2 id="gtitle"></h2></div><div class="gbar" id="gbar"><button type="button" class="ico bare gar" data-garr="-1" aria-label="前の項目" title="前の項目" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button><div class="gchips" id="gchips" role="group" aria-label="このページの項目"></div><button type="button" class="ico bare gar" data-garr="1" aria-label="次の項目" title="次の項目" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button><button type="button" class="gall" id="gall" data-gsec="all" aria-pressed="false" hidden>すべて</button><label class="gq"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input type="search" data-gq placeholder="ガイドを検索" aria-label="ガイドを検索" autocomplete="off" enterkeyhint="search"></label></div><div class="gbody" id="gbody"><p class="gna">読み込み中…</p></div></div></div>
   </section>
   <div class="glb" id="glb" hidden role="dialog" aria-modal="true" aria-label="画像"><button type="button" class="ghost glb-x" id="glbX" aria-label="閉じる">✕</button><div class="glb-v"><img id="glbImg" alt="" draggable="false" title="クリックで拡大・縮小"></div><p class="glb-cap" id="glbCap"></p></div>
 
@@ -1052,8 +1063,10 @@ function gTable(b){var bd={};b.rows.forEach(function(r){r.forEach(function(c){bd
       h+="<"+tag+(sp>1?' colspan="'+sp+'"':"")+(c.b&&tag==="td"?' class="gb"':"")+">"+gText(c)+"</"+tag+">";i=j}
     h+="</tr>"});
   return h+"</tbody></table></div>"}
+function gChipsUpd(){var c=document.getElementById("gchips");if(!c)return;var ov=c.scrollWidth>c.clientWidth+1,l=c.scrollLeft>1,r=c.scrollLeft+c.clientWidth<c.scrollWidth-1;
+  document.querySelector('[data-garr="-1"]').hidden=!(ov&&l);document.querySelector('[data-garr="1"]').hidden=!(ov&&r);c.classList.toggle("fl",ov&&l);c.classList.toggle("fr",ov&&r)}
 function gRender(){var nav=document.getElementById("gnav"),sel=document.getElementById("gsel"),body=document.getElementById("gbody");if(!nav)return;
-  var menu=gMenu();if(!menu.length){body.innerHTML='<p class="gna">読み込み中…</p>';document.getElementById("gmenu").innerHTML="";sel.innerHTML="";return}
+  var menu=gMenu();if(!menu.length){body.innerHTML='<p class="gna">読み込み中…</p>';document.getElementById("gtitle").textContent="";document.getElementById("gmenu").innerHTML="";sel.innerHTML="";return}
   if(!gTab(gCur))gCur=menu[0][1][0];
   if(gUpd(gCur))gSeen(gCur);
   var op=gOpen(),chev='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
@@ -1064,10 +1077,14 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
       (o?'<ul>'+g[1].map(function(n){return'<li><button type="button" class="gi'+(gUpd(n)?" rdot":"")+'" data-g="'+esc(n)+'" aria-current="'+(n===gCur)+'"'+(gUpd(n)?' title="更新があります"':"")+'>'+esc(gEmoji(n)+n)+'</button></li>'}).join("")+'</ul>':"")}).join("");
   var rb=document.querySelector("#grail .gpin");rb.innerHTML=gPinIcon(false);rb.classList.toggle("rdot",gTabs().some(function(t){return gUpd(t.name)}));gSide();
   sel.innerHTML=menu.map(function(g){return'<optgroup label="'+esc(g[0])+'">'+g[1].map(function(n){return'<option value="'+esc(n)+'"'+(n===gCur?" selected":"")+'>'+esc(gEmoji(n)+n)+'</option>'}).join("")+'</optgroup>'}).join("");
-  var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h='<h2>'+gText({t:p.title})+'</h2>';
-  var sel="all",cur=0;
+  var p=gBlocks(gTab(gCur)),hs=p.blocks.filter(function(b){return b.k==="h"}),h="";
+  document.getElementById("gtitle").innerHTML=gText({t:p.title});document.getElementById("gbar").classList.remove("searching");
+  var sel="all",cur=0,chips=document.getElementById("gchips"),all=document.getElementById("gall");
   if(hs.length>1){sel=ls(KEY+":gsec:"+gCur)||String(hs[0].r);if(sel!=="all"&&!hs.some(function(b){return String(b.r)===sel}))sel=String(hs[0].r);
-    h+='<div class="gtoc" id="gtoc" role="group" aria-label="このページの項目">'+hs.map(function(b){return'<button type="button" data-gsec="'+b.r+'" aria-pressed="'+(String(b.r)===sel)+'">'+esc(b.t)+'</button>'}).join("")+'<button type="button" data-gsec="all" aria-pressed="'+(sel==="all")+'">すべて</button></div>'}
+    chips.innerHTML=hs.map(function(b){return'<button type="button" data-gsec="'+b.r+'" aria-pressed="'+(String(b.r)===sel)+'">'+esc(b.t)+'</button>'}).join("")}
+  else chips.innerHTML="";
+  all.hidden=hs.length<2;all.setAttribute("aria-pressed",String(sel==="all"));
+  setTimeout(function(){var on=chips.querySelector('[aria-pressed="true"]');if(on&&(on.offsetLeft<chips.scrollLeft||on.offsetLeft+on.offsetWidth>chips.scrollLeft+chips.clientWidth))chips.scrollLeft=on.offsetLeft-28;gChipsUpd()},0);
   p.blocks.forEach(function(b){if(b.k==="h")cur=b.r;if(sel!=="all"&&cur&&String(cur)!==sel)return;
     if(b.k==="h")h+='<h3 id="gb-'+b.r+'">'+esc(b.t)+(b.tag?'<span class="gtg">'+gText({t:b.tag})+'</span>':"")+'</h3>';
     else if(b.k==="sub")h+='<h4 id="gb-'+b.r+'">'+esc(b.t)+'</h4>';
@@ -1109,20 +1126,23 @@ document.getElementById("view-guide").addEventListener("click",function(e){
   if(e.target.closest("[data-gpin]")){ls(KEY+":gpin",gPinned()?"0":"1");document.getElementById("gwrap").classList.remove("peek");gRender();return}
   var gg=e.target.closest("[data-gg]");if(gg){var op=gOpen(),k=gg.dataset.gg;op[k]=gg.getAttribute("aria-expanded")!=="true";gJ("gopen",op);gRender();var nb=document.querySelector('#gnav [data-gg="'+k+'"]');if(nb)nb.focus();return}
   if(e.target.closest("#grail")&&!gPinned()){document.getElementById("gwrap").classList.toggle("peek");return}
-  var gs=e.target.closest("[data-gsec]");if(gs){ls(KEY+":gsec:"+gCur,gs.dataset.gsec);gRender();var tc=document.getElementById("gtoc");if(tc&&tc.getBoundingClientRect().top<0)tc.scrollIntoView({block:"start"});var nb=document.querySelector('#gtoc [data-gsec="'+gs.dataset.gsec+'"]');if(nb)nb.focus();return}
+  var gs=e.target.closest("[data-gsec]");if(gs){ls(KEY+":gsec:"+gCur,gs.dataset.gsec);gRender();var hd=document.querySelector("#view-guide .ghead");if(hd&&hd.getBoundingClientRect().top<0)hd.scrollIntoView({block:"start"});var nb=document.querySelector('#gbar [data-gsec="'+gs.dataset.gsec+'"]');if(nb)nb.focus();return}
+  var ga=e.target.closest("[data-garr]");if(ga){var ch=document.getElementById("gchips");ch.scrollBy({left:+ga.dataset.garr*Math.max(120,ch.clientWidth*.7),behavior:"smooth"});return}
   var gj=e.target.closest("[data-gj]");if(gj){var m=gj.dataset.gj.split(":"),tab=gTabs().filter(function(t){return String(t.gid)===m[0]})[0];if(tab)gGo(tab.name,m[1]?+m[1]:0);return}
   var im=e.target.closest("[data-img]");if(im){gLightbox(im);return}
   var b=e.target.closest("[data-g]");if(b)gGo(b.dataset.g)});
 document.getElementById("gsel").addEventListener("change",function(){gGo(this.value)});
+(function(){var c=document.getElementById("gchips");c.addEventListener("scroll",gChipsUpd,{passive:true});window.addEventListener("resize",gChipsUpd);
+  c.addEventListener("wheel",function(e){if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&c.scrollWidth>c.clientWidth+1){c.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false})})();
 (function(){var sd=document.getElementById("gside"),w=document.getElementById("gwrap");
   sd.addEventListener("pointerenter",function(e){if(e.pointerType==="mouse"&&!gPinned())w.classList.add("peek")});
   sd.addEventListener("pointerleave",function(e){if(e.pointerType==="mouse")w.classList.remove("peek")});
   document.addEventListener("click",function(e){if(w.classList.contains("peek")&&document.contains(e.target)&&!e.target.closest("#gside"))w.classList.remove("peek")})})();
 document.getElementById("glb").addEventListener("click",function(e){if(e.target.id==="glbImg"){this.classList.toggle("zoom");return}gLightboxClose()});
 document.addEventListener("keydown",function(e){if(e.key==="Escape")gLightboxClose()});
-document.addEventListener("contextmenu",function(e){if(e.target.closest(".gimgs,.glb,#view-guide .gbody"))e.preventDefault()});
-["copy","cut"].forEach(function(t){document.addEventListener(t,function(e){var sel=window.getSelection&&window.getSelection(),n=sel&&sel.anchorNode;if(e.target.closest&&e.target.closest("#view-guide .gbody")||(n&&n.parentElement&&n.parentElement.closest("#view-guide .gbody")))e.preventDefault()})});
-document.addEventListener("dragstart",function(e){if(e.target.closest&&e.target.closest(".gimgs,.glb,#view-guide .gbody"))e.preventDefault()});
+document.addEventListener("contextmenu",function(e){if(e.target.closest(".gimgs,.glb,#view-guide .gbody,#view-guide .ghead"))e.preventDefault()});
+["copy","cut"].forEach(function(t){document.addEventListener(t,function(e){var sel=window.getSelection&&window.getSelection(),n=sel&&sel.anchorNode;if(e.target.closest&&e.target.closest("#view-guide .gbody,#view-guide .ghead")||(n&&n.parentElement&&n.parentElement.closest("#view-guide .gbody,#view-guide .ghead")))e.preventDefault()})});
+document.addEventListener("dragstart",function(e){if(e.target.closest&&e.target.closest(".gimgs,.glb,#view-guide .gbody,#view-guide .ghead"))e.preventDefault()});
 /* ===== ガイド内検索（受信済みの内容をブラウザ内で検索。サーバーとの通信なし） ===== */
 var gIdx=null,gIdxVer=null,gQT=0,gQOpen={};
 function gNormCh(c){c=c.normalize("NFKC").toLowerCase();return c.replace(/[ぁ-ゖ]/g,function(x){return String.fromCharCode(x.charCodeAt(0)+96)}).replace(/[ー－―‐]/g,"ー")}
@@ -1141,11 +1161,12 @@ function gSnip(e,q){var at=e.nm.n.indexOf(q);if(at<0)return null;var s0=e.nm.m[a
   return(a>0?"…":"")+esc(t.slice(a,s0))+'<mark>'+esc(t.slice(s0,s1))+'</mark>'+esc(t.slice(s1,b))+(b<t.length?"…":"")}
 function gSearch(raw){var body=document.getElementById("gbody"),q=gNormMap(String(raw||"").trim()).n;
   if(!q){gQClear(true);return}
-  if(q.length<2){body.innerHTML='<div class="gsr"><p class="gna">2文字以上入力してください。</p></div>';return}
+  if(q.length<2){document.getElementById("gbar").classList.add("searching");body.innerHTML='<div class="gsr"><p class="gna">2文字以上入力してください。</p></div>';return}
   var hits={},order=[];gIndex().forEach(function(e){var sn=gSnip(e,q);if(!sn)return;if(!hits[e.tab]){hits[e.tab]=[];order.push(e.tab)}hits[e.tab].push({e:e,sn:sn})});
   order.sort(function(a,b){return(a===gCur?-1:0)-(b===gCur?-1:0)});
   var total=order.reduce(function(n,k){return n+hits[k].length},0);
-  var h='<div class="gsr"><div class="gsr-h"><h2>「'+esc(String(raw).trim())+'」の検索結果 <span class="num">'+total+'件</span></h2><button type="button" class="ghost" data-gqx>✕ 閉じる</button></div>';
+  document.getElementById("gtitle").innerHTML='「'+esc(String(raw).trim())+'」の検索結果 <span class="num">'+total+'件</span>';document.getElementById("gbar").classList.add("searching");
+  var h='<div class="gsr"><div class="gsr-h"><span class="note">結果を押すと、そのページの該当箇所に移動します。</span><button type="button" class="ghost" data-gqx>✕ 閉じる</button></div>';
   if(!total)h+='<p class="gna">見つかりませんでした。別のことばで検索してください。</p>';
   order.forEach(function(k,gi){var list=hits[k],open=gQOpen[k],show=open?list:list.slice(0,5);
     if(gi===0&&k===gCur)h+='<h3 class="gsr-g">このページ <span class="gtg">'+esc(gEmoji(k)+k)+'</span></h3>';
