@@ -215,6 +215,8 @@ function autoCheck() {
       '自動チェックが3回続けて失敗しました。\n\n' + String(e.message || e) +
       '\n\nSteamや公式サイトの一時的な不具合の場合は自然に戻ります。続く場合は管理者メニューの「公式情報を取得」で確認してください。\nhttps://ragdoll-navi.pages.dev/');
   }
+  // おすすめビルドのリンク（Metaroad）は1日1回だけ確認
+  try { if (Date.now() - (Number(P.getProperty('BUILD_AT')) || 0) > 20 * 3600e3) fetchBuildGuides(); } catch (e2) { console.error('build guides', e2); }
 }
 
 function notifyReview(list) {

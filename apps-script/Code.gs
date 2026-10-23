@@ -262,6 +262,7 @@ function buildData() {
       legion: readLegion(),
       ver: dataVer(),
       guideVer: guideVer(),
+      builds: readBuilds(),
       updated: Utilities.formatDate(dataVer() ? new Date(dataVer()) : new Date(), TZ, 'yyyy-MM-dd HH:mm')
     };
   });

@@ -333,3 +333,41 @@ function prepareMapImages() {
   PropertiesService.getScriptProperties().setProperty('IMG_MAP', JSON.stringify(map));
   console.log('採集マップ画像：' + n + '件');
 }
+
+/* ========== おすすめビルド（Metaroad のビルド一覧から、クラスごとの最新リンクを取得） ========== */
+/* 一覧ページを1日1回読み、URLとタイトル（URLから作る）だけを保存する。本文はコピーしない。
+ * 読めない・見つからない時は前回の結果を使い、それもなければガイドシートのリンクを使う（ツール側） */
+
+var BUILD_LIST = 'https://metaroad.gg/aion2/build-guides';
+var BUILD_CLASSES = ['gladiator', 'templar', 'assassin', 'ranger', 'sorcerer', 'spiritmaster', 'cleric', 'chanter'];
+
+function readBuilds() { try { return JSON.parse(prop('BUILD_LINKS') || '{}'); } catch (e) { return {}; } }
+
+function fetchBuildGuides() {
+  var P = PropertiesService.getScriptProperties();
+  P.setProperty('BUILD_AT', String(Date.now()));
+  var rb = UrlFetchApp.fetch('https://metaroad.gg/robots.txt', { muteHttpExceptions: true });
+  if (rb.getResponseCode() === 200 && !robotsAllows(rb.getContentText(), '/aion2/build-guides')) { console.log('robots.txt で禁止されているため取得しません'); return; }
+  var res = UrlFetchApp.fetch(BUILD_LIST, { muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RagdollNavi/1.0; legion tool)' } });
+  if (res.getResponseCode() !== 200) { console.log('ビルド一覧を読めませんでした：HTTP ' + res.getResponseCode()); return; }
+  var html = res.getContentText(), rx = /\/aion2\/build-guides\/([a-z]+)-([a-z0-9-]+)/g, m, found = {}, n = 0;
+  while ((m = rx.exec(html))) {
+    var cls = m[1], slug = m[1] + '-' + m[2];
+    if (BUILD_CLASSES.indexOf(cls) < 0) continue;
+    found[cls] = found[cls] || [];
+    if (found[cls].some(function (x) { return x.slug === slug; })) continue;
+    found[cls].push({ slug: slug, t: buildTitle(slug), u: 'https://metaroad.gg/aion2/build-guides/' + slug }); n++;
+  }
+  if (!n) { console.log('ビルドのリンクが見つかりませんでした（ページの形が変わった可能性）。前回の結果を使います'); return; }
+  var old = readBuilds(), lost = BUILD_CLASSES.filter(function (c) { return old[c] && old[c].length && !found[c]; });
+  P.setProperty('BUILD_LINKS', JSON.stringify(found));
+  CacheService.getScriptCache().removeAll(['data']);
+  console.log('おすすめビルド：' + n + '件（' + Object.keys(found).join(', ') + '）');
+  if (lost.length) notifyAdmin('[Ragdoll ナビ] おすすめビルドのリンクが見つかりません',
+    'Metaroad のビルド一覧で、次のクラスのビルドが見つかりませんでした：' + lost.join(', ') + '\n\nツールではガイドシートの「ビルドガイド」のリンクを表示します。\n' + BUILD_LIST);
+}
+
+function buildTitle(slug) {
+  var up = { pve: 'PvE', pvp: 'PvP', dps: 'DPS' };
+  return slug.split('-').map(function (w) { return up[w] || (w.charAt(0).toUpperCase() + w.slice(1)); }).join(' ');
+}
