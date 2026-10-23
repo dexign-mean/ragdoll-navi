@@ -145,7 +145,7 @@ function readGuideApi() {
     });
     tabs.push({ name: name, gid: sh.properties.sheetId, rows: out });
   });
-  return { tabs: tabs, intro: intro, updated: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') };
+  return { tabs: tabs, intro: intro, imgVer: prop('IMG_VER') || '1', updated: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') };
 }
 
 function rgbHex(c) {
@@ -172,7 +172,7 @@ function readGuideSlow() {
     if (GUIDE_SKIP.indexOf(name) >= 0) { intro = readIntroValues(sh.getDataRange().getDisplayValues()); return; }
     tabs.push({ name: name, gid: sh.getSheetId(), rows: readSheetRows(sh, imgMap) });
   });
-  return { tabs: tabs, intro: intro, updated: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') };
+  return { tabs: tabs, intro: intro, imgVer: prop('IMG_VER') || '1', updated: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm') };
 }
 
 /* 目次の前書き（作成者・注意書き）と参考（[KR]/[Global] の説明）だけを使う */
@@ -331,7 +331,9 @@ function prepareMapImages() {
     });
   });
   PropertiesService.getScriptProperties().setProperty('IMG_MAP', JSON.stringify(map));
+  PropertiesService.getScriptProperties().setProperty('IMG_VER', String(Date.now()));   // ツールに保存された古い画像を使わせない
   console.log('採集マップ画像：' + n + '件');
+  if (prop('GUIDE_SHEET_ID')) rebuildGuide();   // 新しい画像の版をガイドに反映
 }
 
 /* ========== おすすめビルド（Metaroad のビルド一覧から、クラスごとの最新リンクを取得） ========== */
