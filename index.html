@@ -310,6 +310,7 @@ details[open]>summary::after{transform:rotate(180deg)}
 
 .gnote{margin:0;font-size:12px;color:var(--muted);line-height:1.7}
 .gpara{margin:0;font-size:13px;line-height:1.75}
+.gul{list-style:none;margin:0;padding:0 0 0 .2em;display:grid;gap:2px;font-size:13px;line-height:1.75}.gul li{padding-left:1em;text-indent:-1em}
 .gtbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
 .gtbl table{border-collapse:collapse;width:100%;font-size:13px}
 .gtbl th{background:var(--sunk);text-align:left;font-weight:700;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:bottom}
@@ -1144,11 +1145,14 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
   all.hidden=hs.length<2;all.setAttribute("aria-pressed",String(sel==="all"));
   setTimeout(function(){var on=chips.querySelector('[aria-pressed="true"]');if(on&&(on.offsetLeft<chips.scrollLeft||on.offsetLeft+on.offsetWidth>chips.scrollLeft+chips.clientWidth))chips.scrollLeft=on.offsetLeft-28;gChipsUpd()},0);
   h+=gBuildCard(gTab(gCur));
+  var ulOpen=false;
   if(hasCom)h+='<div class="gcom"><button type="button" class="ghost" data-gcom aria-expanded="false">ⓘ 共通の注意事項</button><div class="gcom-b" hidden>'+cm.list.map(function(x){return'<p class="gnote">'+gText({t:x})+'</p>'}).join("")+'</div></div>';
   p.blocks.forEach(function(b){
     if(b.k==="note"){var nt=b.c.t.trim();if(gIsSrc(nt)){srcs.push(b.c);return}if(lead.indexOf(b)>=0&&cm.set[nt])return;
       if(/🔍/.test(nt)&&tabHasImg(p)){h+='<p class="gnote" id="gb-'+b.r+'">※ 地図を押すと大きく表示されます。</p>';return}}
     if(b.k==="h")cur=b.r;if(sel!=="all"&&cur&&String(cur)!==sel)return;
+    var bul=b.k==="para"&&/^・/.test(b.c.t);if(!bul&&ulOpen){h+="</ul>";ulOpen=false}
+    if(bul){if(!ulOpen){h+='<ul class="gul">';ulOpen=true}h+='<li id="gb-'+b.r+'">'+gText(b.c)+'</li>';return}
     if(b.k==="h")h+='<h3 id="gb-'+b.r+'">'+esc(b.t)+(b.tag?'<span class="gtg">'+gText({t:b.tag})+'</span>':"")+'</h3>';
     else if(b.k==="sub")h+='<h4 id="gb-'+b.r+'">'+esc(b.t)+'</h4>';
     else if(b.k==="note")h+='<p class="gnote" id="gb-'+b.r+'">'+gText(b.c)+'</p>';
@@ -1156,6 +1160,7 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
     else if(b.k==="jump")h+='<div class="gjump" id="gb-'+b.r+'">'+(b.label?'<span class="gl">'+esc(b.label)+'</span>':"")+b.items.map(function(c){return'<button type="button" data-gj="'+esc(c.j)+'">'+esc(c.t)+'</button>'}).join("")+'</div>';
     else if(b.k==="img")h+='<div class="gimgs'+(gMode==="raid"?" gwide":"")+'" id="gb-'+b.r+'">'+b.items.map(function(c){return'<figure><button type="button" data-img="'+esc(c.i)+'" data-cap="'+esc(c.t)+'" aria-label="'+esc(c.t||"画像")+'を拡大"><span>読み込み中…</span></button>'+(c.t?'<figcaption>'+esc(c.t)+'</figcaption>':'')+'</figure>'}).join("")+'</div>';
     else if(b.k==="tbl")h+=gTable(b)});
+  if(ulOpen)h+="</ul>";
   if(!p.blocks.length)h+='<p class="gna">このコンテンツは準備中です。</p>';
   h+='<button type="button" class="ghost gfb" data-gfb="'+esc(gCur)+'">このページの誤りを報告</button>';
   if(srcs.length)h+='<div class="gsrcs">'+srcs.map(function(c){return'<p class="gsrc">'+gText(gSrcText(c))+'</p>'}).join("")+'</div>';
