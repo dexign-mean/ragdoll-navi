@@ -5,6 +5,10 @@
  *   GUIDE_SHEET_ID   DB_ガイドのスプレッドシートID（必須）
  *   GUIDE_VER        ガイドの版（自動。変換が終わった時に更新）
  *   IMG_MAP          採集マップの元画像ID → 画像フォルダのファイル名（prepareMapImages が作成）
+ *   RAID_SHEET_ID    DB_攻略のスプレッドシートID（任意。攻略タブ用。setupRaid で編集時のトリガーを設定）
+ *
+ * 攻略シート：タブ名「遠征｜ダンジョン名」のように「分類｜名前」でまとめる。「_」で始まるタブは表示しない。
+ * 画像はセルに「画像：ファイル名.png」または「画像：ファイル名.png｜説明」と書く（ファイルは画像フォルダに置く。表示用の軽い画像は自動で作成）。
  *
  * 初回だけエディタで setupGuide を実行する（DB_ガイド編集時のトリガー設定＋採集マップ画像の作成＋最初の変換）。
  * DB_ガイドを編集すると、数分後にまとめて1回だけ変換し、画像フォルダの guide-data.json に保存する。
@@ -89,13 +93,52 @@ function cacheGetBig(key) {
 /* 1行 = { r: 行番号, c: [セル] }。セル = { x: 列(0始まり), s: 横の結合数, t: 文字,
  *   h: 見出し色, n: 章見出し色, b: 太字, e: 強調(全体=1 / 一部=[[開始,終了],…]), l: 外部リンク, j: シート内リンク, i: 画像ファイル名 } */
 function readGuide() {
-  try { return readGuideApi(); }
-  catch (e) { console.error('Sheets API で読めなかったため通常の方法で読みます', e); return readGuideSlow(); }
+  var g = readBook(prop('GUIDE_SHEET_ID')), rid = prop('RAID_SHEET_ID');
+  if (rid) readBook(rid).tabs.forEach(function (t) { t.book = 'raid'; g.tabs.push(t); });
+  try { g.imgv = ensureThumbs(g); } catch (e) { console.error('thumbs', e); }
+  return g;
+}
+
+function readBook(id) {
+  try { return readGuideApi(id); }
+  catch (e) { console.error('Sheets API で読めなかったため通常の方法で読みます', e); return readGuideSlow(id); }
+}
+
+/* 「画像：ファイル名」のセル → 画像として表示 */
+function applyImageCell(o) {
+  var m = o.t.match(/^画像[：:]\s*([^｜|]+?)\s*(?:[｜|]\s*(.*))?$/);   // 画像：ファイル名｜説明（説明は任意）
+  if (m) { o.i = m[1]; o.t = m[2] || ''; }
+}
+
+/* 攻略の画像：表示用の画像（ファイル名_s、幅1600px・JPEG）がなければ作る。拡大表示は元画像。元画像の更新日時を版として返す */
+function ensureThumbs(g) {
+  var need = {}, ver = {};
+  g.tabs.forEach(function (t) { if (t.book !== 'raid') return; t.rows.forEach(function (r) { r.c.forEach(function (c) { if (c.i) need[c.i] = 1; }); }); });
+  var names = Object.keys(need);
+  if (!names.length) return ver;
+  var folder = DriveApp.getFolderById(prop('IMAGE_FOLDER_ID')), token = ScriptApp.getOAuthToken();
+  names.forEach(function (n) {
+    var it = folder.getFilesByName(n);
+    if (!it.hasNext()) { console.log('画像が見つかりません：' + n); return; }
+    var f = it.next(), up = f.getLastUpdated().getTime(), sn = n.replace(/(\.[^.]+)$/, '_s$1'), si = folder.getFilesByName(sn), small = si.hasNext() ? si.next() : null;
+    ver[n] = String(up);
+    if (small && small.getLastUpdated().getTime() >= up) return;
+    try {
+      var meta = JSON.parse(UrlFetchApp.fetch('https://www.googleapis.com/drive/v3/files/' + f.getId() + '?fields=thumbnailLink', { headers: { Authorization: 'Bearer ' + token } }).getContentText());
+      if (!meta.thumbnailLink) return;
+      var res = UrlFetchApp.fetch(meta.thumbnailLink.replace(/=s\d+.*$/, '') + '=s1600-rj', { headers: { Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+      if (res.getResponseCode() !== 200) return;
+      if (small) small.setTrashed(true);
+      folder.createFile(res.getBlob().setName(sn));
+      console.log('表示用の画像を作成：' + sn);
+    } catch (e) { console.error('表示用の画像を作れませんでした：' + n, e); }
+  });
+  return ver;
 }
 
 /* Sheets API で全タブの値・書式・結合を1回のリクエストで読む（速い） */
-function readGuideApi() {
-  var id = prop('GUIDE_SHEET_ID'), imgMap = {};
+function readGuideApi(id) {
+  var imgMap = {};
   try { imgMap = JSON.parse(prop('IMG_MAP') || '{}'); } catch (e) {}
   var fields = 'sheets(properties(sheetId,title),merges,data(rowData(values(formattedValue,hyperlink,userEnteredValue/formulaValue,' +
     'effectiveFormat(backgroundColor,textFormat(bold,foregroundColor)),textFormatRuns))))';
@@ -105,6 +148,7 @@ function readGuideApi() {
   var book = JSON.parse(res.getContentText()), tabs = [], intro = [];
   (book.sheets || []).forEach(function (sh) {
     var name = sh.properties.title, rows = ((sh.data || [])[0] || {}).rowData || [];
+    if (/^_/.test(name)) return;
     if (GUIDE_SKIP.indexOf(name) >= 0) {
       intro = readIntroValues(rows.map(function (r) { return (r.values || []).map(function (c) { return c.formattedValue || ''; }); }));
       return;
@@ -138,7 +182,7 @@ function readGuideApi() {
         }
         var link = cv.hyperlink || hyperlinkOf((cv.userEnteredValue || {}).formulaValue, null);
         if (link) applyLink(o, link, imgMap);
-        o.t = o.t.replace(/\s*🔍$/, '');
+        o.t = o.t.replace(/\s*🔍$/, ''); applyImageCell(o);
         cells.push(o);
       });
       if (cells.length) out.push({ r: r + 1, c: cells });
@@ -163,12 +207,13 @@ function applyLink(o, link, imgMap) {
 }
 
 /* 予備：SpreadsheetApp で1タブずつ読む（Sheets API が使えない場合） */
-function readGuideSlow() {
-  var ss = SpreadsheetApp.openById(prop('GUIDE_SHEET_ID')), imgMap = {};
+function readGuideSlow(id) {
+  var ss = SpreadsheetApp.openById(id), imgMap = {};
   try { imgMap = JSON.parse(prop('IMG_MAP') || '{}'); } catch (e) {}
   var tabs = [], intro = [];
   ss.getSheets().forEach(function (sh) {
     var name = sh.getName();
+    if (/^_/.test(name)) return;
     if (GUIDE_SKIP.indexOf(name) >= 0) { intro = readIntroValues(sh.getDataRange().getDisplayValues()); return; }
     tabs.push({ name: name, gid: sh.getSheetId(), rows: readSheetRows(sh, imgMap) });
   });
@@ -216,7 +261,7 @@ function readSheetRows(sh, imgMap) {
       if (fw[r][c] === 'bold') o.b = 1;
       if (isRed(fc[r][c])) o.e = 1; else { var em = redRuns(rich[r][c]); if (em.length) o.e = em; }
       if (link) applyLink(o, link, imgMap);
-      o.t = o.t.replace(/\s*🔍$/, '');
+      o.t = o.t.replace(/\s*🔍$/, ''); applyImageCell(o);
       cells.push(o);
     }
     if (cells.length) out.push({ r: r + 1, c: cells });
@@ -285,7 +330,7 @@ function rebuildGuide() {
 function setupGuide() {
   var id = prop('GUIDE_SHEET_ID');
   if (!id) throw new Error('スクリプト プロパティに GUIDE_SHEET_ID を追加してください');
-  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'onGuideChange') ScriptApp.deleteTrigger(t); });
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'onGuideChange' && t.getTriggerSourceId() === id) ScriptApp.deleteTrigger(t); });
   ScriptApp.newTrigger('onGuideChange').forSpreadsheet(id).onChange().create();
   console.log('トリガー：DB_ガイドの変更を検知します');
   prepareMapImages();
@@ -372,4 +417,15 @@ function fetchBuildGuides() {
 function buildTitle(slug) {
   var up = { pve: 'PvE', pvp: 'PvP', dps: 'DPS' };
   return slug.split('-').map(function (w) { return up[w] || (w.charAt(0).toUpperCase() + w.slice(1)); }).join(' ');
+}
+
+/* エディタで1回実行：DB_攻略の編集時トリガーを設定して変換（RAID_SHEET_ID を先に登録） */
+function setupRaid() {
+  var id = prop('RAID_SHEET_ID');
+  if (!id) throw new Error('スクリプト プロパティに RAID_SHEET_ID を追加してください');
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (t.getHandlerFunction() === 'onGuideChange' && t.getTriggerSourceId() === id) ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('onGuideChange').forSpreadsheet(id).onChange().create();
+  console.log('トリガー：DB_攻略の変更を検知します');
+  PropertiesService.getScriptProperties().deleteProperty('GUIDE_DIRTY');
+  rebuildGuide();
 }

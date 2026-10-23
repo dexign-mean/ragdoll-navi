@@ -58,7 +58,8 @@ function admList() {
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;
   var applies = members.filter(function (m) { return m.status === '申請中'; }).length;
   var P = PropertiesService.getScriptProperties();
-  return { cands: cands, settings: settings, members: members, pending: pending + applies, applies: applies,
+  var fb = feedbackOpen();
+  return { cands: cands, settings: settings, members: members, pending: pending + applies + fb, applies: applies, feedback: fb,
     lastCheck: P.getProperty('OF_LAST_CHECK') || '', checkFails: Number(P.getProperty('OF_FAILS')) || 0 };
 }
 
@@ -231,4 +232,46 @@ function notifyAdmin(subject, body) {
     var to = prop('NOTIFY_EMAIL') || Session.getEffectiveUser().getEmail();
     if (to) MailApp.sendEmail(to, subject, body);
   } catch (e) { console.error('notify failed', e); }
+}
+
+/* ========== フィードバック（ログイン中の人だけ。1人1日5件まで） ========== */
+var FB_TYPES = ['誤訳・表記', '内容の追加・修正', '不具合', 'その他'];
+var FB_HEAD = ['日時', 'ニックネーム', '種類', 'ページ', '内容', '対応状況'];
+
+function actFeedback(req) {
+  var v = checkSession(req.token);
+  if (!v.ok) return v;
+  var type = FB_TYPES.indexOf(req.type) >= 0 ? req.type : 'その他';
+  var text = String(req.text || '').replace(/\r/g, '').trim(), page = String(req.page || '').trim().slice(0, 60);
+  if (!text) return { ok: false, message: '内容を入力してください。' };
+  if (text.length > 500) return { ok: false, message: '500文字以内で入力してください。' };
+  var cache = CacheService.getScriptCache(), key = 'fb:' + hash(norm(v.name)).slice(0, 16) + ':' + today(), n = Number(cache.get(key)) || 0;
+  if (n >= 5) return { ok: false, message: '今日はこれ以上送信できません。明日もう一度お試しください。' };
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var sh = feedbackSheet(), name = req.anon ? '' : v.name;
+    sh.appendRow([Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm'), name, type, page, text, '']);
+  } finally { lock.releaseLock(); }
+  cache.put(key, String(n + 1), 86400);
+  notifyAdmin('[Ragdoll ナビ] フィードバック：' + type, (name || '匿名') + (page ? '（' + page + '）' : '') + '\n\n' + text +
+    '\n\nシート「フィードバック」の「対応状況」に「対応済み」と入れると、管理者メニューの件数から外れます。');
+  return { ok: true, token: v.token, message: '送信しました。ご協力ありがとうございます。' };
+}
+
+function feedbackSheet() {
+  var ss = SpreadsheetApp.getActive(), sh = ss.getSheetByName(SH.feedback);
+  if (!sh) {
+    sh = ss.insertSheet(SH.feedback);
+    sh.getRange(1, 1, 1, FB_HEAD.length).setValues([FB_HEAD]).setBackground('#1F3863').setFontColor('#FFFFFF').setFontWeight('bold');
+    sh.setFrozenRows(1); sh.setColumnWidth(5, 420);
+    sh.getRange('F2:F').setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['対応済み', '対応しない', '確認中'], true).setAllowInvalid(true).build());
+  }
+  return sh;
+}
+
+/* 未対応の件数（対応状況が空） */
+function feedbackOpen() {
+  var sh = SpreadsheetApp.getActive().getSheetByName(SH.feedback);
+  if (!sh || sh.getLastRow() < 2) return 0;
+  return sh.getRange(2, 6, sh.getLastRow() - 1, 1).getDisplayValues().filter(function (r) { return !String(r[0]).trim(); }).length;
 }

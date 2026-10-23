@@ -29,7 +29,8 @@ var SH = {
   schedule: '日程',
   legion: 'レギオン日程',
   members: 'メンバー認証',
-  official: '公式候補'
+  official: '公式候補',
+  feedback: 'フィードバック'
 };
 
 var MSG = {
@@ -59,6 +60,7 @@ function doPost(e) {
       case 'ver':      res = actVer(req); break;
       case 'adm':      res = actAdmin(req); break;   // 管理者用（管理.gs）
       case 'apply':    res = actApply(req); break;   // 利用申請（管理.gs）
+      case 'feedback': res = actFeedback(req); break; // フィードバック（管理.gs）
       case 'guide':    res = actGuide(req); break;   // ガイド（ガイド.gs）
       case 'images':   res = actImages(req); break;  // 画像をまとめて（ガイド.gs）
       default:         res = { ok: false, reason: 'bad_request' };
@@ -398,5 +400,5 @@ function cached(key, fn) {
 function onEdit(e) {
   CacheService.getScriptCache().removeAll(['data', 'settings', 'members']);
   var name = e && e.range ? e.range.getSheet().getName() : '';
-  if (name !== SH.members) PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now()));
+  if (name !== SH.members && name !== SH.feedback) PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now()));
 }
