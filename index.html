@@ -1058,14 +1058,19 @@ function gRender(){var nav=document.getElementById("gnav"),sel=document.getEleme
   body.innerHTML=h;gLazy()}
 /* 画像：サーバー経由で取得（公開URLなし）。表示中だけ保持し、ログアウト・ロックで破棄 */
 function gImg(file){if(gImgs[file])return gImgs[file].p;var a=getAuth();
-  var p=api({action:"image",token:a?a.token:"",file:file}).then(function(r){if(!r.ok)throw r;var bin=atob(r.base64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
-    var url=URL.createObjectURL(new Blob([u],{type:r.mime}));gImgs[file].url=url;return url});
+  var p=api({action:"image",token:a?a.token:"",file:file}).then(function(r){if(!r.ok)throw r;var url=gB64url(r.base64,r.mime);gImgs[file].url=url;return url});
   gImgs[file]={p:p};p.catch(function(){delete gImgs[file]});return p}
 function gSmall(f){return f.replace(/(\.[a-z]+)$/i,"_s$1")}
 function gShow(btn){var f=btn.dataset.img;gImg(gSmall(f)).catch(function(){return gImg(f)}).then(function(url){btn.innerHTML='<img src="'+url+'" alt="'+esc(btn.dataset.cap)+'" draggable="false">'},function(r){btn.innerHTML="<span>表示できませんでした</span>";if(r&&r.reason)handleFail(r)})}
-function gLazy(){var bs=document.querySelectorAll("#gbody [data-img]");if(!bs.length)return;
-  if(!("IntersectionObserver" in window)){bs.forEach(gShow);return}
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){io.unobserve(e.target);gShow(e.target)}})},{rootMargin:"300px"});bs.forEach(function(b){io.observe(b)})}
+function gB64url(b64,mime){var bin=atob(b64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return URL.createObjectURL(new Blob([u],{type:mime}))}
+/* 一覧の小さい画像は1回の通信でまとめて取得（取れなかった分は1枚ずつ） */
+function gLazy(){var bs=Array.prototype.slice.call(document.querySelectorAll("#gbody [data-img]"));if(!bs.length)return;
+  var need=bs.map(function(b){return gSmall(b.dataset.img)}).filter(function(f,i,a){return!gImgs[f]&&a.indexOf(f)===i}),a=getAuth();
+  if(!need.length||!a){bs.forEach(gShow);return}
+  var p=api({action:"images",token:a.token,files:need}).then(function(r){if(!r.ok){if(r.reason&&r.reason!=="bad_request")handleFail(r);throw r}
+    if(r.token){a.token=r.token;setAuth(a,!!ls(AKEY))}return r.images||{}});
+  need.forEach(function(f){var q=p.then(function(im){if(!im[f])throw 0;var url=gB64url(im[f].base64,im[f].mime);gImgs[f].url=url;return url});gImgs[f]={p:q};q.catch(function(){delete gImgs[f]})});
+  bs.forEach(gShow)}
 function gGo(n,row){gCur=n;ls(GTKEY,n);document.getElementById("gwrap").classList.remove("peek");
   if(row){var sec=0;gBlocks(gTab(n)).blocks.forEach(function(b){if(b.k==="h"&&b.r<=row)sec=b.r});if(sec&&ls(KEY+":gsec:"+n)!=="all")ls(KEY+":gsec:"+n,String(sec))}
   gRender();var t=null;

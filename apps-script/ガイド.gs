@@ -28,6 +28,21 @@ function actGuide(req) {
   return { ok: true, token: v.token, ver: guideVer(), guide: g };
 }
 
+/* 画像をまとめて返す（一覧用の小さい画像を1回の通信で）。画像フォルダ内のファイル名のみ、最大20件 */
+function actImages(req) {
+  var v = checkSession(req.token);
+  if (!v.ok) return v;
+  var files = (req.files || []).map(String).filter(function (f) { return f && !/[\/\\]/.test(f); }).slice(0, 20);
+  var folder = DriveApp.getFolderById(prop('IMAGE_FOLDER_ID')), out = {};
+  files.forEach(function (f) {
+    var it = folder.getFilesByName(f);
+    if (!it.hasNext()) return;
+    var b = it.next().getBlob();
+    out[f] = { mime: b.getContentType(), base64: Utilities.base64Encode(b.getBytes()) };
+  });
+  return { ok: true, token: v.token, images: out };
+}
+
 function guideVer() { return Number(prop('GUIDE_VER')) || 1; }
 
 /* 保存済みの変換結果を返す（キャッシュ → 画像フォルダのファイル → なければその場で変換） */

@@ -60,6 +60,7 @@ function doPost(e) {
       case 'adm':      res = actAdmin(req); break;   // 管理者用（管理.gs）
       case 'apply':    res = actApply(req); break;   // 利用申請（管理.gs）
       case 'guide':    res = actGuide(req); break;   // ガイド（ガイド.gs）
+      case 'images':   res = actImages(req); break;  // 画像をまとめて（ガイド.gs）
       default:         res = { ok: false, reason: 'bad_request' };
     }
   } catch (err) {
