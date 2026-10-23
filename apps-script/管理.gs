@@ -10,7 +10,7 @@
 
 var ADM_SETTINGS = { '自動承認': ['ON', 'OFF'], '公開状態': ['公開', '停止'], 'お知らせ': null };
 var ADM_STATES = ['新規', '要確認', '期間変更あり', '確認済み', '除外'];
-var ADM_MEMBER = ['有効', '停止', '退会'];
+var ADM_MEMBER = ['有効', '停止', '退会', '申請中', '却下'];
 
 function actAdmin(req) {
   var v = checkSession(req.token);
@@ -50,12 +50,13 @@ function admList() {
   if (!settings['公開状態']) settings['公開状態'] = '公開';
   var ms = ss.getSheetByName(SH.members), members = [];
   if (ms && ms.getLastRow() > 1) {
-    ms.getRange(2, 1, ms.getLastRow() - 1, 6).getDisplayValues().forEach(function (r, i) {
-      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], memo: r[4], joined: r[5] });
+    ms.getRange(2, 1, ms.getLastRow() - 1, 7).getDisplayValues().forEach(function (r, i) {
+      if (r[0].trim()) members.push({ row: i + 2, name: r[0].trim(), status: r[1], quit: r[2], memo: r[4], joined: r[5], applied: r[6] });
     });
   }
   var pending = cands.filter(function (c) { return c.state === '要確認' || c.state === '期間変更あり'; }).length;
-  return { cands: cands, settings: settings, members: members, pending: pending };
+  var applies = members.filter(function (m) { return m.status === '申請中'; }).length;
+  return { cands: cands, settings: settings, members: members, pending: pending + applies, applies: applies };
 }
 
 /* 候補の更新（行番号と記事IDの両方が一致する時だけ書き込む） */
@@ -119,10 +120,50 @@ function admMember(req) {
     if (cur !== req.name) return { ok: false, message: 'シートが変更されています。一覧を読み込み直してください。' };
     sh.getRange(row, 2).setValue(st);
     if (st === '退会') sh.getRange(row, 3).setValue(today());
+    if (st === '有効' && !sh.getRange(row, 6).getDisplayValue()) sh.getRange(row, 6).setValue(today());   // 承認した日を登録日に
     CacheService.getScriptCache().remove('members');
     return { ok: true, message: cur + ' を「' + st + '」にしました。' };
   }
   return { ok: false, reason: 'bad_request' };
+}
+
+/* ========== 利用申請（ログイン画面から。認証コードが正しい人だけ） ========== */
+
+function actApply(req) {
+  var name = String(req.name || '').trim(), code = String(req.code || '');
+  if (!name || !code) return { ok: false, reason: 'empty', message: MSG.empty };
+  if (!isPublic()) return closedRes();
+  if (norm(code) !== norm(prop('AUTH_CODE'))) return { ok: false, reason: 'wrong', message: MSG.wrong };
+  var cache = CacheService.getScriptCache(), ck = 'apply:' + hash(norm(name)).slice(0, 20);
+  if (cache.get(ck)) return { ok: true, reason: 'applied', message: MSG.applied };   // 連打しても1回だけ
+  if (name.length > 30) return { ok: false, message: 'ニックネームが長すぎます。' };
+
+  var lock = LockService.getScriptLock(); lock.waitLock(10000);
+  try {
+    var m = findMemberFresh(norm(name)), sh = SpreadsheetApp.getActive().getSheetByName(SH.members);
+    if (m && m.status === '有効') return { ok: false, reason: 'registered', message: 'すでに登録されています。ログインしてください。' };
+    if (m && m.status === '停止') return { ok: false, reason: 'blocked', message: MSG.blocked };
+    if (m && m.status === '申請中') { cache.put(ck, '1', 3600); return { ok: true, reason: 'applied', message: MSG.pending }; }
+    if (m) { sh.getRange(m.row, 2).setValue('申請中'); sh.getRange(m.row, 7).setValue(today()); }   // 却下・退会からの再申請
+    else sh.getRange(sh.getLastRow() + 1, 1, 1, 7).setValues([[name, '申請中', '', '', '', '', today()]]);
+    CacheService.getScriptCache().remove('members');
+  } finally { lock.releaseLock(); }
+  cache.put(ck, '1', 3600);
+  notifyApply(name);
+  return { ok: true, reason: 'applied', message: MSG.applied };
+}
+
+/* 管理者へメールで知らせる（同じ人は1日1回まで）。送り先はスクリプトの持ち主、または NOTIFY_EMAIL */
+function notifyApply(name) {
+  try {
+    var cache = CacheService.getScriptCache(), k = 'mail:' + hash(norm(name)).slice(0, 20);
+    if (cache.get(k)) return;
+    var to = prop('NOTIFY_EMAIL') || Session.getEffectiveUser().getEmail();
+    if (!to) return;
+    MailApp.sendEmail(to, '[Ragdoll ナビ] 利用申請：' + name,
+      name + ' さんから利用申請がありました。\n\nツールの管理者メニュー（盾のアイコン）→「メンバー」で承認・却下できます。\nhttps://ragdoll-navi.pages.dev/');
+    cache.put(k, '1', 21600);
+  } catch (e) { console.error('notify failed', e); }
 }
 
 function findMemberFresh(key) { CacheService.getScriptCache().remove('members'); return findMember(key); }

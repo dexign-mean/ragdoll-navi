@@ -37,7 +37,10 @@ var MSG = {
   blocked: 'このキャラクターは現在ご利用いただけません。管理者にお問い合わせください。',
   closed: 'Ragdoll ナビの公開は終了しました。',
   expired: 'ログインの有効期限が切れました。もう一度ログインしてください。',
-  error: 'サーバーでエラーが発生しました。しばらくしてからもう一度お試しください。'
+  error: 'サーバーでエラーが発生しました。しばらくしてからもう一度お試しください。',
+  unregistered: 'このニックネームはまだ登録されていません。利用申請を送ると、管理者が確認します。',
+  pending: '利用申請を確認中です。管理者の承認をお待ちください。',
+  applied: '利用申請を送りました。管理者の承認後にログインできます。'
 };
 
 /* ========== 入口 ========== */
@@ -53,6 +56,7 @@ function doPost(e) {
       case 'withdraw': res = actWithdraw(req); break;
       case 'ver':      res = actVer(req); break;
       case 'adm':      res = actAdmin(req); break;   // 管理者用（管理.gs）
+      case 'apply':    res = actApply(req); break;   // 利用申請（管理.gs）
       default:         res = { ok: false, reason: 'bad_request' };
     }
   } catch (err) {
@@ -95,14 +99,19 @@ function actLogin(req) {
   var adminOk = !!prop('ADMIN_CODE') && norm(code) === norm(prop('ADMIN_CODE'));
   var codeOk = adminOk || norm(code) === norm(prop('AUTH_CODE'));
   var m = findMember(key);
-  if (!codeOk || !m) {
+  if (!codeOk) {
     cache.put(fk, String(fails + 1), LOCK_SEC);
     return { ok: false, reason: 'wrong', message: MSG.wrong };
   }
   cache.remove(fk);
   if (!adminOk) {                                   // 管理者は公開停止中・名簿の状態に関係なく入れる（元に戻せるように）
     if (!isPublic()) return closedRes();
+    // 認証コードが正しい人にだけ、未登録・申請中であることを伝える（コードを知らない人には区別しない）
+    if (!m || m.status === '却下') return { ok: false, reason: 'unregistered', message: MSG.unregistered, canApply: true };
+    if (m.status === '申請中') return { ok: false, reason: 'pending', message: MSG.pending };
     if (m.status !== '有効') return { ok: false, reason: 'blocked', message: MSG.blocked };
+  } else if (!m) {
+    return { ok: false, reason: 'wrong', message: MSG.wrong };
   }
 
   if (prop('LOG_LAST_LOGIN') === 'true') writeMemberCell(m.row, 4, today());
